@@ -73,6 +73,8 @@ For **every route**:
 | Gecko | Firefox (Playwright) | 435 checks, 0 failures |
 | WebKit | WebKit / Safari engine (Playwright) | 435 checks, 0 failures |
 
+**Against the live site** (https://nri-family.vercel.app, read-only mode, 2026-09-25): Edge, Firefox and WebKit each pass **433 checks, 0 failures**. The two real form submissions are skipped in read-only mode; they were verified live separately, and FormSubmit confirmed delivery. A separate content audit of the live pages found **all 333 items the Phase 1 prompt requires**.
+
 Under WebKit, Tab-order checks are replaced by focusing the skip link directly: like Safari's default setting, WebKit does not Tab to links. Aborted RSC prefetch requests are also ignored under WebKit; they are cancelled by the test's own navigation and reported as "access control" errors.
 
 ## Bugs the gate caught during Phase 1
@@ -83,21 +85,30 @@ Under WebKit, Tab-order checks are replaced by focusing the skip link directly: 
 - An orphaned final step in the wrapping step chain, which prompted the `FlowChain` redesign
 - The CSP `upgrade-insecure-requests` directive broke WebKit on plain-HTTP previews
 - Safari does not focus buttons on click, so mobile-menu focus restore is now explicit
+- Lighthouse: the logo link's aria-label didn't match its visible text (fixed), and mobile LCP was 2.9 s because of preloaded italic and variable fonts (now 2.2–2.3 s)
 
-## Performance (production build, home page)
+## Performance (live site, home page)
 
-Measured on the final build:
+**Lighthouse on https://nri-family.vercel.app** (2026-09-25, two runs each, after the font change):
+
+| Mode | Performance | Accessibility | Best practices | SEO | FCP | LCP | TBT | CLS |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Mobile (simulated slow 4G, mid-range phone) | 98 | 100 | 100 | 66* | 1.2–1.3 s | 2.2–2.3 s | 10–40 ms | 0 |
+| Desktop | 100 | 100 | 100 | 66* | 0.3 s | 0.5 s | 0 ms | 0 |
+
+* SEO 66 comes only from "page is blocked from indexing": the deliberate pre-launch noindex (`allowSearchIndexing: false`). Every other SEO audit passes; it returns to 100 at launch.
+
+Page weight:
 
 | Route | HTML (gz) | JS, modern browsers (gz) | CSS (gz) | Preloaded fonts |
 | --- | --- | --- | --- | --- |
-| `/` | 32.8 KB | 138.6 KB | 9.7 KB | 3 files, 148 KB |
-| `/get-started` | 9.9 KB | 143.7 KB | 9.7 KB | 3 files, 148 KB |
-| `/property-care` | 15.9 KB | 138.8 KB | 9.7 KB | 3 files, 148 KB |
+| `/` | ~33 KB | ~139 KB | ~10 KB | 2 files, 51 KB |
+| `/get-started` | ~10 KB | ~144 KB | ~10 KB | 2 files, 51 KB |
 
-- Every route is static HTML.
-- Roughly 121 KB of the JavaScript is the React/Next.js runtime; the site's own code is about 13 KB (plus about 5 KB for the form on `/get-started`). A further 38.7 KB polyfill chunk is `nomodule`, so modern browsers never download it.
-- There are no images, so all visuals are HTML/CSS.
-- Two self-hosted font families (Geist, Newsreader) use `display: swap`. Removing an unused Geist Mono cut preloaded fonts from 4 files (171 KB) to 3 (148 KB).
+- Every route is static HTML. There are no images; all visuals are HTML/CSS.
+- About 121 KB of the JavaScript is the React/Next.js runtime; the site's own code is about 13 KB (plus about 5 KB for the form on `/get-started`). A 38.7 KB polyfill chunk is `nomodule`, so modern browsers never download it.
+- **Fonts:** only the faces the first screen needs are preloaded: Geist (sans) and Newsreader roman at weight 500 (23 KB). The italic face is fetched on demand. This took mobile LCP from 2.9 s to 2.2–2.3 s. Earlier steps: an unused Geist Mono was removed (4 files, 171 KB, down to 3 files, 148 KB), then the italic and variable faces were dropped from preload (3 files, 148 KB, down to 2 files, 51 KB).
+- **Measured and rejected:** Next.js's experimental `inlineCss` made LCP worse in local Lighthouse runs (2.8 s, against 2.6–2.7 s without it), so it is not used.
 
 ## Manual checks still recommended before launch
 
