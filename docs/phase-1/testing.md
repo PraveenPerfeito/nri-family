@@ -15,6 +15,12 @@ LEADS_WEBHOOK_URL=http://127.0.0.1:3199/leads npm start
 QA_BROWSER=msedge npm run qa      # or chrome | chromium | firefox | webkit
 ```
 
+To check the **live site** without sending enquiries, use read-only mode. It skips the real form submissions and still checks empty-form validation:
+
+```bash
+BASE_URL=https://nri-family.vercel.app QA_READONLY=true QA_BROWSER=msedge npm run qa
+```
+
 `firefox` and `webkit` need the Playwright engines: `npx playwright-core install firefox webkit`. `msedge` and `chrome` use the installed browsers. Set `QA_SCREENSHOTS=<dir>` to save full-page screenshots of key pages.
 
 ## Unit tests (Vitest, `tests/`)
@@ -100,5 +106,5 @@ Measured on the final build:
 - Lighthouse or PageSpeed Insights on the deployed URL (Core Web Vitals with real network latency)
 - One real enquiry on the live site after clicking FormSubmit's activation email, to confirm it arrives in the inbox
 
-> **Never run `npm run qa` against the live site.** It submits real forms, which would email the owner and use up the rate limit. Local runs are safe: the email relay only runs on Vercel.
+> **Against the live site, always set `QA_READONLY=true`.** Normal runs submit real forms, which would email the owner and use up the rate limit. Local runs are safe, because email is only sent on Vercel.
 - Rich Results Test on `/faq` and a service page

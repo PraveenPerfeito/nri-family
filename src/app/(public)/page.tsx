@@ -1,5 +1,6 @@
 import {
   Building2,
+  Camera,
   FileSearch,
   FileText,
   HeartHandshake,
@@ -35,6 +36,13 @@ export const metadata = pageMetadata({
     "NRI property management and local support in Tamil Nadu: inspections, maintenance, rentals, documents and family help, with photos, reports and approvals.",
   path: routes.home,
 });
+
+/** §61: HOW (local execution, evidence) and WHY TRUST (privacy, approval) within the first screen. */
+const heroPoints = [
+  { icon: Users, text: "A local team handles each request" },
+  { icon: Camera, text: "Photos, reports and invoices as proof" },
+  { icon: ShieldCheck, text: "Private by default. You approve costs." },
+];
 
 const problems = [
   { icon: House, title: "Property", question: "Who checks it?" },
@@ -84,6 +92,14 @@ export default function HomePage() {
               </ButtonLink>
             </div>
             <p className="mt-6 text-sm text-ink-subtle">Built for NRIs with property, family and assets in Tamil Nadu.</p>
+            <ul aria-label="How we work" className="mt-5 grid gap-2.5 border-t border-line pt-5 text-sm text-ink-muted">
+              {heroPoints.map(({ icon: Icon, text }) => (
+                <li key={text} className="flex items-center gap-2.5">
+                  <Icon aria-hidden className="size-4 shrink-0 text-brand" strokeWidth={1.75} />
+                  {text}
+                </li>
+              ))}
+            </ul>
           </div>
           <FamilyOfficePreview />
         </div>

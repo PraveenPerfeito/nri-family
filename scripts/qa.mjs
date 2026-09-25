@@ -11,6 +11,8 @@
  *                      (Playwright engines: npx playwright-core install firefox webkit). Default msedge
  *   QA_SCREENSHOTS     directory to write screenshots to (optional)
  *   QA_WEBHOOK_PORT    start a mock lead webhook on this port (default 3199; "0" to disable)
+ *   QA_READONLY        "true" to skip real form submissions (safe against the live site:
+ *                      nothing is emailed; empty-form validation is still checked)
  *
  * Checks every route at every target viewport for horizontal overflow and
  * console errors, then per-route SEO, links, images, headings, and the
@@ -24,7 +26,8 @@ import { chromium, firefox, webkit } from "playwright-core";
 const BASE = (process.env.BASE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const CHANNEL = process.env.QA_BROWSER ?? "msedge";
 const SHOTS = process.env.QA_SCREENSHOTS;
-const WEBHOOK_PORT = Number(process.env.QA_WEBHOOK_PORT ?? 3199);
+const READONLY = process.env.QA_READONLY === "true";
+const WEBHOOK_PORT = READONLY ? 0 : Number(process.env.QA_WEBHOOK_PORT ?? 3199);
 const VIEWPORTS = [320, 360, 375, 390, 414, 768, 1024, 1280, 1440, 1920];
 
 const failures = [];
@@ -294,6 +297,8 @@ else ok();
 if (!(await page.evaluate(() => document.activeElement?.getAttribute("name") === "name"))) fail("get-started: focus not moved to first invalid field");
 await page.getByLabel("Full name", { exact: true }).fill("Test Person");
 if (await page.locator("#name-error").count()) fail("get-started: error did not clear after editing field");
+if (READONLY) console.log("QA_READONLY: skipping real form submissions");
+else {
 await page.getByLabel("Country you live in", { exact: true }).fill("United Arab Emirates");
 await page.getByLabel("Email", { exact: true }).fill("test@example.com");
 await page.getByLabel("WhatsApp / Phone", { exact: true }).fill("+971 50 000 0000");
@@ -330,6 +335,7 @@ await page
 const leaked = await page.evaluate(() => JSON.stringify(window.dataLayer ?? []).includes("test@example.com"));
 if (leaked) fail("analytics dataLayer contains personal data");
 else ok();
+}
 
 } catch (err) {
   fail(`interactions aborted: ${err.message.split("\n")[0]}`);

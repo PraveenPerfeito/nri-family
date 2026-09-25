@@ -62,6 +62,6 @@ This doc traces each section of the Phase 1 master prompt to where it is impleme
 | 58 | Development order | Followed. The repository report was given before implementation. |
 | 59 | Sensible defaults, documented assumptions | Assumptions table in [product-overview.md](product-overview.md) |
 | 60 | Eight docs in `/docs/phase-1/` | All present, plus this file |
-| 61–62 | 10-second understanding: trust, control, transparency, privacy, local execution | Hero → problem → solution → trust → privacy order. See [information-architecture.md](information-architecture.md). |
+| 61–62 | 10-second understanding: trust, control, transparency, privacy, local execution | The hero answers WHAT (headline), WHO ("Built for NRIs…"), WHAT YOU HANDLE (supporting line) and WHAT TO DO (Get Started). Three points under the CTAs cover HOW and WHY TRUST in the first screen: a local team handles each request; photos, reports and invoices as proof; private by default, you approve costs. The page order is then problem → solution → trust → privacy. |
 
 **Branding:** not confirmed. The working name is "NRI Family Office" (`brandName` in src/config/site.ts), with a placeholder mark. See [product-overview.md](product-overview.md).
