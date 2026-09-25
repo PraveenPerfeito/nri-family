@@ -13,8 +13,8 @@ Phase 1 = **Layer 1, public website only**. Layers 2–5 (NRI Portal, Admin ERP,
 ## Settings: code, not environment variables
 
 - All **public** settings are in the settings block at the top of `src/config/site.ts`: brand name, domain, contact email and WhatsApp, leads inbox, company details and `allowSearchIndexing` (false until launch). The user could not edit Vercel's Sensitive env vars, so don't move these back into env vars.
-- Only **secrets** go in Vercel env vars (optional `LEADS_WEBHOOK_URL` / `LEADS_WEBHOOK_SECRET`).
-- **Enquiries** are emailed via FormSubmit, only when `VERCEL_ENV` is set, so local dev and QA never email the owner. FormSubmit blocks requests from Vercel's servers, so the Server Action validates and then returns a `relay` result, and the browser posts it (`src/lib/leads/browser-relay.ts`). Keep that split: don't move the FormSubmit call back to the server. Never point `npm run qa` at the live site: it submits real forms.
+- Only **secrets** go in Vercel env vars (optional `RESEND_API_KEY`, `LEADS_WEBHOOK_URL` / `LEADS_WEBHOOK_SECRET`).
+- **Enquiries** are emailed only when `VERCEL_ENV` is set, so local dev and QA never email the owner. Preferred: Resend, server-side, when `RESEND_API_KEY` is set (template in `src/lib/leads/notification-email.ts`: no images, HTML-escape every visitor value). Backup, or when there is no key: FormSubmit. FormSubmit blocks requests from Vercel's servers, so the Server Action validates and then returns a `relay` result, and the browser posts it (`src/lib/leads/browser-relay.ts`). Keep that split: don't move the FormSubmit call back to the server. Never point `npm run qa` at the live site: it submits real forms.
 
 ## Commands
 

@@ -71,15 +71,16 @@ async function finish(kind: LeadKind, data: Record<string, unknown>): Promise<Fo
   const payload = { kind, submittedAt: new Date().toISOString(), data };
   const result = await deliverLead(payload);
 
-  // Email relay active (on Vercel): hand the validated enquiry to the browser.
-  const relay = emailRelayFor(payload);
+  // No email went out server-side (Resend not configured or failed): if the
+  // relay is active (on Vercel), hand the validated enquiry to the browser.
+  const relay = result.ok && result.emailed ? null : emailRelayFor(payload);
   if (relay) {
     return {
       status: "relay",
       relay,
       message: SUCCESS_MESSAGE,
       fallbackMessage: failedMessage(),
-      // Only a real webhook delivery counts (the dev-mode log does not).
+      // Only a real delivery counts (the dev-mode log does not).
       deliveredServerSide: result.ok && result.delivered,
     };
   }

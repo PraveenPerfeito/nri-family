@@ -10,7 +10,7 @@ vi.mock("next/headers", () => ({
 const { submitContact, submitGetStarted } = await import("@/lib/leads/actions");
 const { HONEYPOT_FIELD, STARTED_AT_FIELD, initialFormState } = await import("@/lib/leads/types");
 const { siteConfig } = await import("@/config/site");
-const { EMAIL_RELAY_ENDPOINT, buildEmailBody } = await import("@/lib/leads/delivery");
+const { EMAIL_RELAY_ENDPOINT, RESEND_ENDPOINT, buildEmailBody } = await import("@/lib/leads/delivery");
 
 const relayUrl = `${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(siteConfig.leadsEmail ?? "")}`;
 const calledUrls = () => fetchMock.mock.calls.map(([url]) => String(url));
@@ -43,6 +43,7 @@ beforeEach(() => {
   // Not on Vercel by default, so the email relay stays off (as in local dev and QA).
   vi.stubEnv("VERCEL_ENV", "");
   vi.stubEnv("LEADS_EMAIL_RELAY", "");
+  vi.stubEnv("RESEND_API_KEY", "");
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "info").mockImplementation(() => {});
 });
@@ -192,5 +193,58 @@ describe("email relay (completed by the browser)", () => {
     });
     expect(body["Submitted at"]).toMatch(/IST$/);
     expect(body._replyto).toBeUndefined();
+  });
+});
+
+describe("Resend email channel", () => {
+  it("sends our own branded email from the server when RESEND_API_KEY is set on Vercel", async () => {
+    vi.stubEnv("LEADS_WEBHOOK_URL", "");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ id: "email_1" }), { status: 200 }));
+
+    const state = await submitContact(initialFormState, contactForm());
+
+    expect(state.status).toBe("success");
+    expect(state.relay).toBeUndefined();
+    expect(calledUrls()).toEqual([RESEND_ENDPOINT]);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).authorization).toBe("Bearer re_test_key");
+    const body = JSON.parse(String(init.body));
+    expect(body.to).toEqual([siteConfig.leadsEmail]);
+    expect(body.reply_to).toBe("test@example.com");
+    expect(body.from).toContain(siteConfig.name);
+    expect(body.subject).toMatch(/contact enquiry from Test Person/i);
+    expect(body.html).toContain("Reply by email");
+    expect(body.text).toContain("Service category: Property Care");
+  });
+
+  it("falls back to the browser relay if Resend fails", async () => {
+    vi.stubEnv("LEADS_WEBHOOK_URL", "");
+    vi.stubEnv("VERCEL_ENV", "production");
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ message: "invalid key" }), { status: 401 }));
+
+    const state = await submitContact(initialFormState, contactForm());
+
+    expect(state.status).toBe("relay");
+    expect(state.relay?.endpoint).toBe(relayUrl);
+    expect(state.deliveredServerSide).toBe(false);
+  });
+
+  it("is never used in local development or QA runs, even with a key", async () => {
+    vi.stubEnv("RESEND_API_KEY", "re_test_key");
+    const state = await submitContact(initialFormState, contactForm());
+    expect(state.status).toBe("success");
+    expect(calledUrls()).toEqual(["https://hooks.example.test/leads"]);
+  });
+
+  it("adds a WhatsApp chat link to the FormSubmit fallback email", () => {
+    const body = buildEmailBody({
+      kind: "contact",
+      submittedAt: "2026-09-25T06:30:00.000Z",
+      data: { name: "Test", phone: "+971 50 000 0000", country: "UAE" },
+    });
+    expect(body["WhatsApp chat"]).toBe("https://wa.me/971500000000");
   });
 });

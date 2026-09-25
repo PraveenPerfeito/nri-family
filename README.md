@@ -27,7 +27,7 @@ Forms work in development without configuration. Submissions are validated and l
 
 - **Public settings live in code**, not in environment variables: brand name, domain, contact email and WhatsApp, company details and the pre-launch search-indexing switch are all in the settings block at the top of [src/config/site.ts](src/config/site.ts). Edit, commit, push.
 - **Vercel needs no environment variables.** The production domain is detected automatically (`VERCEL_PROJECT_PRODUCTION_URL`), and every push to `main` redeploys.
-- **Enquiry emails** are sent through FormSubmit, a free relay. The server validates each enquiry, then the visitor's browser hands it over, because FormSubmit blocks requests from Vercel's servers. The first enquiry triggers a one-time "Activate Form" email to the inbox; click it once.
+- **Enquiry emails:** with a `RESEND_API_KEY` in Vercel, the site sends its own branded email (no ads, with reply, WhatsApp and call buttons, and a signature). Otherwise, or as a backup, FormSubmit is used: the server validates each enquiry, then the visitor's browser hands it over, because FormSubmit blocks requests from Vercel's servers. The first enquiry triggers a one-time "Activate Form" email to the inbox; click it once.
 - **Search engines are blocked until launch** (`allowSearchIndexing: false`). Set it to `true` at launch.
 
 ## Scripts

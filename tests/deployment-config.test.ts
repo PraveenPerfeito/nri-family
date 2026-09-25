@@ -24,12 +24,20 @@ describe("resolveSiteUrl", () => {
 });
 
 describe("whatsappLink", () => {
-  it("builds a wa.me link from a display number", () => {
+  it("builds a wa.me link from an international number", () => {
     expect(whatsappLink("+91 96001 90022")).toBe("https://wa.me/919600190022");
+    expect(whatsappLink("0044 20 7946 0000")).toBe("https://wa.me/442079460000");
   });
 
-  it("is what the site links to", () => {
-    expect(siteConfig.contact.whatsappUrl).toBe(siteConfig.contact.whatsapp ? whatsappLink(siteConfig.contact.whatsapp) : undefined);
+  it("adds a URL-encoded pre-typed message", () => {
+    expect(whatsappLink("+91 96001 90022", "Hi, I need help & advice")).toBe("https://wa.me/919600190022?text=Hi%2C%20I%20need%20help%20%26%20advice");
+  });
+
+  it("the site's link opens a chat with a greeting naming the brand", () => {
+    if (!siteConfig.contact.whatsapp) return;
+    const url = new URL(siteConfig.contact.whatsappUrl!);
+    expect(url.origin + url.pathname).toBe(whatsappLink(siteConfig.contact.whatsapp));
+    expect(url.searchParams.get("text")).toContain(siteConfig.name);
   });
 });
 

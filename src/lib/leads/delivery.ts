@@ -1,27 +1,33 @@
 import "server-only";
 import { siteConfig } from "@/config/site";
+import { buildNotificationEmail, customerWhatsappLink, fieldLabel, formatValue } from "./notification-email";
 import type { RelayInstruction } from "./types";
 
 /**
- * Where enquiries go. Two channels; when both are configured a lead counts as
- * delivered if at least one succeeds.
+ * Where enquiries go. Server-side channels run first; the browser relay is the
+ * email fallback. A lead counts as delivered if any channel succeeds.
  *
- * 1. Email to `leadsEmail` (src/config/site.ts) through FormSubmit
- *    (formsubmit.co), a free relay that needs no account or API key. The first
- *    message triggers a one-time "Activate Form" email to that inbox.
- *    FormSubmit refuses requests from cloud servers (such as Vercel's), so the
- *    server builds the email here and the visitor's browser hands it over
- *    (src/lib/leads/browser-relay.ts) — only after the server has validated,
- *    spam-checked and rate-limited the submission. It is active only on
- *    deployed Vercel environments (VERCEL_ENV is set), or with
- *    LEADS_EMAIL_RELAY=true elsewhere, so local development and automated QA
- *    never email the owner. FormSubmit keeps submissions for 30 days.
+ * 1. Resend (preferred email), server-side — active when RESEND_API_KEY is set
+ *    in Vercel. We control the whole email (src/lib/leads/notification-email.ts):
+ *    branded, no ads or images, reply / WhatsApp / call buttons, signature.
+ *    Until a domain is verified in Resend, its shared sender can only deliver
+ *    to the Resend account's own address, which is the leads inbox.
  * 2. Webhook, server-side (CRM, automation tool, future internal API):
  *      LEADS_WEBHOOK_URL     — HTTPS endpoint that receives a JSON POST.
  *      LEADS_WEBHOOK_SECRET  — optional; sent as a Bearer token.
+ * 3. FormSubmit (formsubmit.co), completed by the visitor's browser — used
+ *    when no email was sent server-side (Resend not configured, or it failed).
+ *    FormSubmit refuses requests from cloud servers such as Vercel's, so the
+ *    server builds the email and the browser hands it over
+ *    (src/lib/leads/browser-relay.ts), only after the server has validated,
+ *    spam-checked and rate-limited the submission. Its free emails carry
+ *    FormSubmit's own sponsor block and sign-off, which cannot be removed.
+ *    FormSubmit keeps submissions for 30 days.
  *
- * The Admin ERP (Layer 3) will replace both with a first-party leads table.
- * Nothing here logs personal data.
+ * Email channels are active only on deployed Vercel environments (VERCEL_ENV
+ * is set), or with LEADS_EMAIL_RELAY=true elsewhere, so local development and
+ * automated QA never email the owner. Nothing here logs personal data.
+ * The Admin ERP (Layer 3) will replace all of this with a first-party leads table.
  */
 export type LeadKind = "contact" | "get-started";
 
@@ -31,40 +37,31 @@ export type LeadPayload = {
   data: Record<string, unknown>;
 };
 
-/** `delivered` is false for the development-only log, which accepts but delivers nothing. */
-export type DeliveryResult = { ok: true; delivered: boolean } | { ok: false; reason: "not-configured" | "failed" };
+/**
+ * `delivered`: a real channel accepted the lead (false for the development-only
+ * log). `emailed`: an email notification already went out server-side.
+ */
+export type DeliveryResult =
+  | { ok: true; delivered: boolean; emailed: boolean }
+  | { ok: false; reason: "not-configured" | "failed" };
 
 export const EMAIL_RELAY_ENDPOINT = "https://formsubmit.co/ajax/";
+export const RESEND_ENDPOINT = "https://api.resend.com/emails";
+/** Resend's shared sender, usable before a domain is verified. */
+export const RESEND_DEFAULT_SENDER = "onboarding@resend.dev";
 
 const TIMEOUT_MS = 8000;
 
-const FIELD_LABELS: Record<string, string> = {
-  name: "Name",
-  country: "Country",
-  email: "Email",
-  phone: "Phone / WhatsApp",
-  category: "Service category",
-  ownsProperty: "Owns property in Tamil Nadu",
-  topics: "Needs help with",
-  message: "Message",
-  details: "Details",
-  consent: "Agreed to be contacted",
-};
-
-function formatValue(value: unknown): string {
-  if (Array.isArray(value)) return value.join(", ");
-  if (typeof value === "boolean") return value ? "Yes" : "No";
-  if (value === "yes") return "Yes";
-  if (value === "no") return "No";
-  const text = String(value ?? "").trim();
-  return text || "—";
-}
-
-function emailRelayEnabled(): boolean {
+function emailChannelsActive(): boolean {
   return Boolean(siteConfig.leadsEmail) && (Boolean(process.env.VERCEL_ENV) || process.env.LEADS_EMAIL_RELAY === "true");
 }
 
-/** Human-readable email body: labelled fields plus FormSubmit control fields. */
+function resendKey(): string | undefined {
+  const key = process.env.RESEND_API_KEY?.trim();
+  return key && emailChannelsActive() ? key : undefined;
+}
+
+/** FormSubmit body: labelled fields plus FormSubmit control fields. */
 export function buildEmailBody(payload: LeadPayload): Record<string, string> {
   const title = payload.kind === "contact" ? "Contact enquiry" : "Get Started request";
   const body: Record<string, string> = {
@@ -74,20 +71,47 @@ export function buildEmailBody(payload: LeadPayload): Record<string, string> {
     Form: title,
   };
   for (const [key, value] of Object.entries(payload.data)) {
-    body[FIELD_LABELS[key] ?? key] = formatValue(value);
+    body[fieldLabel(key)] = formatValue(value);
   }
+  const chat = customerWhatsappLink(payload.data.phone, payload.data.country);
+  if (chat) body["WhatsApp chat"] = chat;
   body["Submitted at"] = new Date(payload.submittedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
   if (typeof payload.data.email === "string") body._replyto = payload.data.email;
   return body;
 }
 
-/** The email hand-off for the visitor's browser, or null when the relay is not active here. */
+/** The email hand-off for the visitor's browser, or null when email is not active here. */
 export function emailRelayFor(payload: LeadPayload): RelayInstruction | null {
-  if (!emailRelayEnabled()) return null;
+  if (!emailChannelsActive()) return null;
   return {
     endpoint: `${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(siteConfig.leadsEmail!)}`,
     body: buildEmailBody(payload),
   };
+}
+
+async function sendWithResend(key: string, payload: LeadPayload): Promise<boolean> {
+  const email = buildNotificationEmail(payload, { brand: siteConfig.name, siteUrl: siteConfig.url });
+  try {
+    const res = await fetch(RESEND_ENDPOINT, {
+      method: "POST",
+      headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
+      body: JSON.stringify({
+        from: siteConfig.leadsEmailFrom ?? `${siteConfig.name} Website <${RESEND_DEFAULT_SENDER}>`,
+        to: [siteConfig.leadsEmail],
+        subject: email.subject,
+        html: email.html,
+        text: email.text,
+        ...(email.replyTo ? { reply_to: email.replyTo } : {}),
+      }),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: "no-store",
+    });
+    if (!res.ok) console.error(`[leads] Resend delivery failed with status ${res.status}`);
+    return res.ok;
+  } catch {
+    console.error("[leads] Resend delivery failed (network error)");
+    return false;
+  }
 }
 
 async function sendToWebhook(url: string, payload: LeadPayload): Promise<boolean> {
@@ -110,16 +134,23 @@ async function sendToWebhook(url: string, payload: LeadPayload): Promise<boolean
   }
 }
 
-/** Server-side delivery (the webhook). The email relay is completed by the browser. */
+/** Server-side delivery: Resend and/or the webhook. The FormSubmit fallback is completed by the browser. */
 export async function deliverLead(payload: LeadPayload): Promise<DeliveryResult> {
   const webhookUrl = process.env.LEADS_WEBHOOK_URL;
-  if (!webhookUrl) {
+  const key = resendKey();
+
+  if (!webhookUrl && !key) {
     if (process.env.NODE_ENV !== "production") {
       // Development only: log that a lead arrived, without personal details.
       console.info(`[leads] ${payload.kind} enquiry received (dev mode, not delivered). Fields: ${Object.keys(payload.data).join(", ")}`);
-      return { ok: true, delivered: false };
+      return { ok: true, delivered: false, emailed: false };
     }
     return { ok: false, reason: "not-configured" };
   }
-  return (await sendToWebhook(webhookUrl, payload)) ? { ok: true, delivered: true } : { ok: false, reason: "failed" };
+
+  const [emailed, webhooked] = await Promise.all([
+    key ? sendWithResend(key, payload) : Promise.resolve(false),
+    webhookUrl ? sendToWebhook(webhookUrl, payload) : Promise.resolve(false),
+  ]);
+  return emailed || webhooked ? { ok: true, delivered: true, emailed } : { ok: false, reason: "failed" };
 }

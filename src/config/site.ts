@@ -22,6 +22,12 @@ const settings = {
   contactWhatsapp: "+91 96001 90022",
   /** Inbox that receives website enquiries (see src/lib/leads/delivery.ts). */
   leadsEmail: "praveenperfeitoo@gmail.com",
+  /**
+   * Sender for enquiry emails sent through Resend (used once RESEND_API_KEY is
+   * set in Vercel). Leave empty to use Resend's shared sender until a domain
+   * is verified in Resend, e.g. "Enquiries <enquiries@your-domain.com>".
+   */
+  leadsEmailFrom: "",
   /** Legal entity details. Leave empty until they are finalised. */
   companyLegalName: "",
   companyAddress: "",
@@ -51,9 +57,14 @@ export function resolveSiteUrl(configured: string | undefined, vercelProductionD
   return url.replace(/\/+$/, "");
 }
 
-/** wa.me link from a display number such as "+91 96001 90022". */
-export function whatsappLink(displayNumber: string): string {
-  return `https://wa.me/${displayNumber.replace(/\D/g, "")}`;
+/**
+ * wa.me chat link from an international number such as "+91 96001 90022",
+ * optionally with a pre-typed message. Opens the WhatsApp app on phones and
+ * WhatsApp Web / Desktop on computers.
+ */
+export function whatsappLink(internationalNumber: string, text?: string): string {
+  const digits = internationalNumber.replace(/\D/g, "").replace(/^00/, "");
+  return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
 
 const whatsapp = optional(settings.contactWhatsapp);
@@ -74,10 +85,13 @@ export const siteConfig = {
   contact: {
     email: optional(settings.contactEmail),
     whatsapp,
-    whatsappUrl: whatsapp ? whatsappLink(whatsapp) : undefined,
+    /** Opens a chat with a pre-typed greeting, so replies show they came from the website. */
+    whatsappUrl: whatsapp ? whatsappLink(whatsapp, `Hi, I found you on the ${settings.brandName} website and would like some help.`) : undefined,
   },
   /** Where website enquiries are emailed. */
   leadsEmail: optional(settings.leadsEmail),
+  /** Sender for Resend-delivered enquiry emails; undefined means Resend's shared sender. */
+  leadsEmailFrom: optional(settings.leadsEmailFrom),
   /** Legal entity details. Shown only when set. */
   company: {
     legalName: optional(settings.companyLegalName),
