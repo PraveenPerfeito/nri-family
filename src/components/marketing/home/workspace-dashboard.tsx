@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { ReactNode } from "react";
 import {
   AlertCircle,
   CalendarClock,
@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   Lock,
   Search,
+  UserRound,
   Users,
   Wrench,
 } from "lucide-react";
@@ -29,8 +30,10 @@ import { cn } from "@/lib/utils/cn";
 const summary =
   "Concept preview with sample data: the workspace overview shows 3 properties, 2 open requests and 1 approval. " +
   "Property health: Chennai House 92, good; Chengalpattu Land 96, good; Coimbatore Apartment 88, needs review. " +
-  "Activity: Chennai property inspection completed, quote received, plumbing repair completed and a land inspection scheduled. " +
-  "An approval card asks the owner to review or approve garden maintenance at Chennai House for ₹8,500.";
+  "Activity: Chennai property inspection completed, quote received, plumbing repair completed, a land inspection scheduled and September rent received. " +
+  "An approval card asks the owner to review or approve garden maintenance at Chennai House for ₹8,500. " +
+  "Latest reports: an inspection report for Chennai House and a repair invoice for Coimbatore Apartment. " +
+  "Upcoming: rent due on 5 October and a land inspection on 12 October.";
 
 const nav: { label: string; icon: LucideIcon; count?: number; active?: boolean }[] = [
   { label: "Overview", icon: LayoutGrid, active: true },
@@ -75,8 +78,10 @@ export function WorkspaceDashboard() {
             Search properties, requests…
           </div>
           <div className="flex items-center gap-2.5">
-            <DemoLabel className="max-sm:hidden">Concept preview · Sample data</DemoLabel>
-            <span className="flex size-7 items-center justify-center rounded-full bg-night text-[0.6875rem] font-semibold text-white">A</span>
+            <DemoLabel kind="concept" />
+            <span className="flex size-7 items-center justify-center rounded-full bg-night text-white max-sm:hidden">
+              <UserRound className="size-3.5" strokeWidth={2} />
+            </span>
           </div>
         </div>
 
@@ -134,10 +139,9 @@ export function WorkspaceDashboard() {
                 { label: "Approval", value: 1, attention: true },
               ].map((s) => (
                 <div key={s.label} className="rounded-card border border-line-subtle bg-surface px-3 py-3 sm:px-5 sm:py-4">
-                  <p
-                    className={cn("count-up text-2xl leading-none font-semibold tracking-tight tabular-nums sm:text-3xl", s.attention ? "text-attention" : "text-ink")}
-                    style={{ "--to": s.value } as CSSProperties}
-                  />
+                  <p className={cn("text-2xl leading-none font-semibold tracking-tight tabular-nums sm:text-3xl", s.attention ? "text-attention" : "text-ink")}>
+                    {String(s.value).padStart(2, "0")}
+                  </p>
                   <p className="mt-2 text-xs text-ink-subtle sm:text-[0.8125rem]">{s.label}</p>
                 </div>
               ))}
@@ -181,7 +185,7 @@ export function WorkspaceDashboard() {
               </Panel>
 
               {/* Activity */}
-              <Panel title="Activity" meta="Last 7 days" className="lg:col-start-1 lg:row-start-2">
+              <Panel title="Activity" meta="Recent" className="lg:col-start-1 lg:row-start-2">
                 <ol className="relative mt-4 space-y-4">
                   {w.timeline.map((a, i) => (
                     <li key={a.id} className="relative grid grid-cols-[1rem_1fr_auto] items-start gap-3">
@@ -228,11 +232,26 @@ export function WorkspaceDashboard() {
                 <p className="mt-3 text-[0.6875rem] text-ink-subtle">Nothing proceeds until you approve.</p>
               </div>
 
-              {/* Upcoming */}
-              <Panel title="Upcoming" className="lg:col-start-2 lg:row-start-2">
+              {/* Reports and upcoming */}
+              <Panel title="Reports" meta="Latest" className="lg:col-start-2 lg:row-start-2">
                 <ul className="mt-3 divide-y divide-line-subtle">
+                  {w.reports.map((r) => (
+                    <li key={r.id} className="flex items-center gap-3 py-2.5 text-[0.8125rem] first:pt-1">
+                      <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
+                        <FileText className="size-4" strokeWidth={1.75} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block font-medium text-ink">{r.label}</span>
+                        <span className="block truncate text-xs text-ink-subtle">{r.detail}</span>
+                      </span>
+                      <span className="shrink-0 text-[0.6875rem] text-ink-subtle">{r.when}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-label mt-4 border-t border-line-subtle pt-4 text-ink-subtle">Upcoming</p>
+                <ul className="mt-2 divide-y divide-line-subtle">
                   {w.upcoming.map((u) => (
-                    <li key={u.id} className="flex items-center justify-between gap-3 py-2.5 text-[0.8125rem] first:pt-1 last:pb-0">
+                    <li key={u.id} className="flex items-center justify-between gap-3 py-2.5 text-[0.8125rem] last:pb-0">
                       <span className="min-w-0">
                         <span className="block font-medium text-ink">{u.label}</span>
                         <span className="block text-xs text-ink-subtle">{u.detail}</span>
@@ -246,10 +265,8 @@ export function WorkspaceDashboard() {
           </div>
         </div>
       </div>
-      <figcaption id="workspace-caption" className="mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-ink-subtle">
-        <span className="text-label">Concept preview · Sample data</span>
-        <span aria-hidden className="max-sm:hidden">—</span>
-        <span>The private online workspace is being built now.</span>
+      <figcaption id="workspace-caption" className="sr-only">
+        Concept preview of the private workspace, with sample data. The online workspace is being built now.
       </figcaption>
     </figure>
   );

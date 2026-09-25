@@ -75,17 +75,28 @@ export function AvailabilityBadge({ availability }: { availability: Availability
   );
 }
 
-/** Marks illustrative UI so nobody mistakes a mock-up for real data. */
-export function DemoLabel({ children = "Illustrative preview · sample data", tone = "light", className }: { children?: ReactNode; tone?: "light" | "night"; className?: string }) {
+const demoLabels = {
+  /** Product UI that doesn't exist yet (workspace, dashboard, permissions). */
+  concept: "Concept preview",
+  /** Example content: reports, records, listings, plans. */
+  illustrative: "Illustrative data",
+} as const;
+
+/**
+ * The one small badge for anything illustrative, so nobody mistakes a mock-up
+ * for real data. Always one of two fixed labels, used the same way everywhere.
+ */
+export function DemoLabel({ kind = "illustrative", tone = "light", className }: { kind?: keyof typeof demoLabels; tone?: "light" | "night"; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border border-dashed px-2.5 py-0.5 text-[0.6875rem] font-medium tracking-wide uppercase",
-        tone === "night" ? "border-night-line text-night-muted" : "border-line-strong text-ink-subtle",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.12em] whitespace-nowrap uppercase",
+        tone === "night" ? "border-night-line text-night-muted" : "border-line bg-surface text-ink-subtle",
         className,
       )}
     >
-      {children}
+      <span aria-hidden className="size-1 rounded-full bg-current opacity-70" />
+      {demoLabels[kind]}
     </span>
   );
 }

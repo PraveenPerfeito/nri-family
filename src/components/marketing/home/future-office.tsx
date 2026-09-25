@@ -1,28 +1,37 @@
-import { Building2, Check, CircleDashed, FileText, HeartHandshake, KeyRound, LandPlot, Wrench } from "lucide-react";
+import { ArrowDown, ArrowRight, Building2, Check, CircleDashed, FileText, HeartHandshake, KeyRound, LandPlot, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { LogoMark } from "@/components/layout/logo";
 import { Eyebrow } from "@/components/ui/section";
 import { roadmap } from "@/data/marketing";
 
-const inputs: { label: string; detail: string; icon: LucideIcon }[] = [
-  { label: "Property", detail: "Houses and apartments", icon: Building2 },
-  { label: "Land", detail: "Plots and farmland", icon: LandPlot },
-  { label: "Documents", detail: "Records and renewals", icon: FileText },
-  { label: "Family", detail: "Help for loved ones", icon: HeartHandshake },
-  { label: "Rentals", detail: "Tenants and rent", icon: KeyRound },
-  { label: "Services", detail: "Repairs and upkeep", icon: Wrench },
+const areas: { label: string; icon: LucideIcon }[] = [
+  { label: "Property", icon: Building2 },
+  { label: "Land", icon: LandPlot },
+  { label: "Documents", icon: FileText },
+  { label: "Family", icon: HeartHandshake },
+  { label: "Rentals", icon: KeyRound },
+  { label: "Services", icon: Wrench },
 ];
 
-/* Curves from each of the six columns into the centre (viewBox units; columns are equal width). */
-const curves = inputs.map((_, i) => {
-  const x = ((i + 0.5) / inputs.length) * 1200;
-  return `M${x},0 C${x},56 600,44 600,100`;
-});
+function Step({ className }: { className?: string }) {
+  return (
+    <li aria-hidden className={className}>
+      <span className="flex size-8 items-center justify-center rounded-full border border-night-line bg-night text-night-muted">
+        <ArrowRight className="size-3.5 max-lg:hidden" />
+        <ArrowDown className="size-3.5 lg:hidden" />
+      </span>
+    </li>
+  );
+}
 
-/** The long-term vision, with a hard line between what exists today and what is still being built. */
+/**
+ * The long-term vision as the evolution of the product: what is available
+ * today, what is coming next, and where it is going. Future items are never
+ * shown as operational.
+ */
 export function FutureOffice() {
-  const available = roadmap.filter((r) => r.availability === "available");
-  const coming = roadmap.filter((r) => r.availability === "coming");
+  const today = roadmap.filter((r) => r.availability === "available");
+  const next = roadmap.filter((r) => r.availability === "coming");
 
   return (
     <section aria-labelledby="vision-title" className="on-night relative isolate overflow-hidden bg-night py-20 text-night-text sm:py-28 lg:py-36">
@@ -44,79 +53,66 @@ export function FutureOffice() {
           </p>
         </div>
 
-        {/* Six areas → one family office */}
-        <div className="mt-16 lg:mt-20">
-          <ul
-            aria-label="What your family office brings together"
-            className="grid grid-cols-2 gap-px overflow-hidden rounded-card border border-night-line bg-night-line sm:grid-cols-3 lg:grid-cols-6"
-          >
-            {inputs.map(({ label, detail, icon: Icon }) => (
-              <li key={label} className="bg-night-raised px-4 py-5 text-center">
-                <Icon aria-hidden className="mx-auto size-4 text-brand-muted" strokeWidth={1.75} />
-                <p className="text-label mt-3 text-white">{label}</p>
-                <p className="mt-1 text-xs text-night-muted">{detail}</p>
-              </li>
-            ))}
-          </ul>
-
-          <svg aria-hidden className="hidden h-24 w-full lg:block" viewBox="0 0 1200 100" preserveAspectRatio="none">
-            <g fill="none" stroke="rgb(168 205 194 / 0.35)" strokeWidth="1" vectorEffect="non-scaling-stroke">
-              {curves.map((d) => (
-                <path key={d} d={d} vectorEffect="non-scaling-stroke" />
-              ))}
-            </g>
-          </svg>
-          <div aria-hidden className="mx-auto h-10 w-px bg-gradient-to-b from-night-line to-brand-muted/60 lg:hidden" />
-
-          <div className="mx-auto flex max-w-md flex-col items-center rounded-panel border border-brand-muted/30 bg-night-raised px-6 py-6 text-center shadow-[0_0_0_8px_rgb(15_90_79/0.14),0_30px_80px_-30px_rgb(15_90_79/0.6)] sm:flex-row sm:gap-4 sm:text-left">
-            <LogoMark className="size-10 shrink-0" inverted />
-            <div className="mt-3 sm:mt-0">
-              <p className="text-label text-brand-muted">Your family office</p>
-              <p className="mt-1 text-lg font-semibold tracking-tight text-white">One private place for everything here.</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Today vs. later — never blurred */}
-        <div className="mt-16 grid gap-4 md:grid-cols-2 lg:mt-20">
-          <div className="rounded-panel border border-night-line bg-night-raised p-6 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-white">
-                <span aria-hidden className="size-2 rounded-full bg-good-bright" />
-                Available today
-              </h3>
-              <span className="text-label text-night-muted">Coordinated by our team</span>
-            </div>
-            <p className="mt-2 text-sm text-night-muted">Request any of these through Get Started.</p>
-            <ul className="mt-6 grid gap-3 text-[0.9375rem] text-night-text">
-              {available.map((r) => (
-                <li key={r.label} className="flex items-start gap-3">
+        <ol aria-label="How the platform grows" className="mt-16 grid gap-3 lg:mt-20 lg:grid-cols-[1fr_auto_1fr_auto_1.1fr] lg:items-stretch lg:gap-4">
+          {/* Today */}
+          <li className="rounded-panel border border-night-line bg-night-raised p-6 sm:p-7">
+            <p className="text-label text-white">Today</p>
+            <p className="mt-2 flex items-center gap-2 text-sm text-night-muted">
+              <span aria-hidden className="size-1.5 rounded-full bg-good-bright" />
+              Available now
+            </p>
+            <ul className="mt-5 space-y-2.5 text-[0.9375rem] text-night-text">
+              {today.map((r) => (
+                <li key={r.label} className="flex items-start gap-2.5">
                   <Check aria-hidden className="mt-1 size-4 shrink-0 text-good-bright" strokeWidth={2} />
-                  {r.label}
+                  {r.short}
                 </li>
               ))}
             </ul>
-          </div>
+          </li>
 
-          <div className="rounded-panel border border-dashed border-night-line p-6 sm:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <h3 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-white">
-                <span aria-hidden className="size-2 rounded-full border border-info-bright" />
-                Coming to the platform
-              </h3>
-              <span className="text-label text-night-muted">In development</span>
-            </div>
-            <p className="mt-2 text-sm text-night-muted">Being built now. Not yet available to customers.</p>
-            <ul className="mt-6 grid gap-3 text-[0.9375rem] text-night-muted">
-              {coming.map((r) => (
-                <li key={r.label} className="flex items-start gap-3">
+          <Step className="flex justify-center lg:items-center" />
+
+          {/* Next */}
+          <li className="rounded-panel border border-dashed border-night-line p-6 sm:p-7">
+            <p className="text-label text-white">Next</p>
+            <p className="mt-2 flex items-center gap-2 text-sm text-night-muted">
+              <span aria-hidden className="size-1.5 rounded-full border border-info-bright" />
+              Coming to the platform
+            </p>
+            <ul className="mt-5 space-y-2.5 text-[0.9375rem] text-night-muted">
+              {next.map((r) => (
+                <li key={r.label} className="flex items-start gap-2.5">
                   <CircleDashed aria-hidden className="mt-1 size-4 shrink-0 text-info-bright" strokeWidth={1.75} />
-                  {r.label}
+                  {r.short}
                 </li>
               ))}
             </ul>
-          </div>
-        </div>
+          </li>
+
+          <Step className="flex justify-center lg:items-center" />
+
+          {/* Vision */}
+          <li className="relative flex flex-col justify-between overflow-hidden rounded-panel border border-brand-muted/30 bg-night-raised p-6 shadow-[0_0_0_8px_rgb(15_90_79/0.12),0_30px_80px_-30px_rgb(15_90_79/0.6)] sm:p-7">
+            <div>
+              <p className="text-label text-white">Vision</p>
+              <p className="mt-2 text-sm text-night-muted">Where it is going</p>
+            </div>
+            <div className="mt-8 text-center lg:mt-0">
+              <LogoMark className="mx-auto size-11" inverted />
+              <p className="text-display mt-4 text-2xl text-white">Digital Family Office</p>
+              <p className="mx-auto mt-2 max-w-xs text-sm text-night-muted">One private place for everything you own and manage in Tamil Nadu.</p>
+            </div>
+            <ul aria-label="Brought together" className="mt-8 flex flex-wrap justify-center gap-1.5">
+              {areas.map(({ label, icon: Icon }) => (
+                <li key={label} className="inline-flex items-center gap-1.5 rounded-full border border-night-line bg-night px-2.5 py-1 text-xs text-night-text">
+                  <Icon aria-hidden className="size-3 text-brand-muted" strokeWidth={2} />
+                  {label}
+                </li>
+              ))}
+            </ul>
+          </li>
+        </ol>
       </div>
     </section>
   );

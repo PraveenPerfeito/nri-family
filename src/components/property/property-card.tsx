@@ -1,6 +1,7 @@
 import { Building2, Home, LandPlot, MessageSquareLock, Sprout } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { VisibilityBadge } from "@/components/trust/visibility";
+import { DemoLabel } from "@/components/ui/badge";
 import type { DemoListing } from "@/data/demo";
 import type { PropertyKind } from "@/types/domain";
 
@@ -23,9 +24,7 @@ export function PropertyCard({ listing }: { listing: DemoListing }) {
     <li className="flex flex-col overflow-hidden rounded-card border border-line bg-surface shadow-card">
       <div aria-hidden className="bg-grid relative flex h-36 items-center justify-center border-b border-line bg-subtle">
         <Icon className="size-10 text-ink-subtle/70" strokeWidth={1.25} />
-        <span className="absolute top-3 left-3 rounded-full bg-surface/90 px-2.5 py-0.5 text-[0.6875rem] font-medium text-ink-muted">
-          Sample listing
-        </span>
+        <DemoLabel className="absolute top-3 left-3" />
       </div>
       <div className="flex flex-1 flex-col p-5">
         <p className="text-xs font-medium tracking-wide text-ink-subtle uppercase">

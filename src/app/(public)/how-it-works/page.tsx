@@ -86,7 +86,7 @@ export default function HowItWorksPage() {
             title="An NRI in Dubai, a house in Chennai."
             lead="A typical routine inspection. Names, times and findings are illustrative."
           />
-          <DemoLabel className="self-start md:self-end">Illustrative example</DemoLabel>
+          <DemoLabel className="self-start md:self-end" />
         </div>
         <div className="mt-10 flex flex-wrap items-center gap-3 text-sm font-medium text-ink">
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-canvas px-3 py-1.5">

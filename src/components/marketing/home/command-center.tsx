@@ -1,4 +1,3 @@
-import type { CSSProperties } from "react";
 import { AlertCircle, CheckCircle2, Lock, MapPin } from "lucide-react";
 import { LogoMark } from "@/components/layout/logo";
 import { commandCenter as d, sampleApproval } from "@/data/demo";
@@ -70,13 +69,12 @@ export function CommandCenter() {
             </p>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="animate-activity grid grid-cols-3 gap-2 sm:gap-3">
             {d.stats.map((s) => (
               <div key={s.label} className="rounded-card border border-line-subtle bg-canvas/60 px-3 py-3 sm:px-4 sm:py-3.5">
-                <p
-                  className={cn("count-up text-2xl leading-none font-semibold tracking-tight tabular-nums sm:text-[1.75rem]", s.attention ? "text-attention" : "text-ink")}
-                  style={{ "--to": s.value } as CSSProperties}
-                />
+                <p className={cn("text-2xl leading-none font-semibold tracking-tight tabular-nums sm:text-[1.75rem]", s.attention ? "text-attention" : "text-ink")}>
+                  {String(s.value).padStart(2, "0")}
+                </p>
                 <p className="mt-1.5 text-xs text-ink-subtle">{s.label}</p>
               </div>
             ))}

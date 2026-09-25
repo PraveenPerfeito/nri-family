@@ -28,7 +28,7 @@ export function PropertyControl() {
       <div className="container-page grid gap-16 lg:grid-cols-[1fr_0.9fr] lg:items-center lg:gap-24">
         <div>
           <Eyebrow>Selling or renting</Eyebrow>
-          <h2 id="list-title" className="text-display mt-5 text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem]">
+          <h2 id="list-title" className="text-display mt-5 text-[2rem] leading-[1.08] sm:text-[2.5rem] lg:text-5xl">
             Want to sell or rent your property?
           </h2>
           <p className="mt-6 max-w-xl text-lg text-ink-muted">
@@ -53,7 +53,7 @@ export function PropertyControl() {
                     <span className="text-label text-ink">{label}</span>
                     {i === 0 ? <span className="rounded-full bg-subtle px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide text-ink-muted uppercase">Default</span> : null}
                     {current ? (
-                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide text-brand-strong uppercase">Sample listing</span>
+                      <span className="rounded-full bg-brand-soft px-2 py-0.5 text-[0.625rem] font-semibold tracking-wide text-brand-strong uppercase">This listing</span>
                     ) : null}
                   </p>
                   <p className="mt-1 text-lg font-medium tracking-tight text-ink">{who}</p>
@@ -93,7 +93,7 @@ export function PropertyControl() {
                 </span>
                 <span className="mt-1 size-1.5 rounded-full bg-night/40" />
               </span>
-              <DemoLabel className="absolute top-3 left-3 bg-surface/90">Sample listing</DemoLabel>
+              <DemoLabel className="absolute top-3 left-3" />
             </div>
             <div className="p-5 sm:p-6">
               <p className="text-label text-ink-subtle">Chennai · For sale</p>
@@ -133,7 +133,7 @@ export function PropertyControl() {
             </div>
           </article>
           </div>
-          <figcaption id="listing-caption" className="mt-6 text-center text-xs text-ink-subtle">
+          <figcaption id="listing-caption" className="sr-only">
             Sample listing with illustrative details. Listings never show the owner’s name, phone number, email or exact address.
           </figcaption>
         </figure>

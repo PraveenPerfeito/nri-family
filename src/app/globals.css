@@ -240,23 +240,6 @@
 }
 
 /*
- * Number transition for sample dashboard figures (CSS only). The final value
- * is always rendered; the count-up runs only when motion is welcome.
- */
-@property --count {
-  syntax: "<integer>";
-  initial-value: 0;
-  inherits: false;
-}
-.count-up {
-  --count: var(--to);
-  counter-reset: count var(--count);
-}
-.count-up::after {
-  content: counter(count, decimal-leading-zero);
-}
-
-/*
  * Scroll reveal and entrance motion: progressive enhancement only. Content is
  * fully visible when scroll-driven animations are unsupported or the visitor
  * prefers reduced motion.
@@ -268,10 +251,20 @@
       animation-timeline: view();
       animation-range: entry 0% entry 35%;
     }
-  }
 
-  .count-up {
-    animation: count-up 900ms var(--ease-calm) 250ms both;
+    /*
+     * Service record: the rail fills and each step lights up as it crosses the
+     * middle of the screen (the view timeline is inset to a line at 50%).
+     * Without support or with reduced motion, the record simply shows complete.
+     */
+    .timeline-fill {
+      animation: timeline-fill linear both;
+      animation-timeline: view(block 50%);
+    }
+    .timeline-node {
+      animation: timeline-node linear both;
+      animation-timeline: view(block 50%);
+    }
   }
 
   .animate-activity > * {
@@ -332,12 +325,25 @@
   }
 }
 
-@keyframes count-up {
+@keyframes timeline-fill {
   from {
-    --count: 0;
+    transform: scaleY(0);
   }
   to {
-    --count: var(--to);
+    transform: scaleY(1);
+  }
+}
+
+@keyframes timeline-node {
+  from {
+    background-color: var(--color-surface);
+    border-color: var(--color-line);
+    color: var(--color-ink-subtle);
+  }
+  to {
+    background-color: var(--color-brand-soft);
+    border-color: rgb(15 90 79 / 0.3);
+    color: var(--color-brand);
   }
 }
 

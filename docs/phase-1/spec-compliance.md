@@ -46,7 +46,7 @@ This doc traces each section of the Phase 1 master prompt to where it is impleme
 | 40 | Per-page SEO, sitemap, robots, schema | `pageMetadata`, `sitemap.ts`, `robots.ts`, JSON-LD. See [seo.md](seo.md). |
 | 41 | Keyword topics, no stuffing | Mapping in [seo.md](seo.md) |
 | 42 | Performance | Static HTML, ~139 KB JS (framework baseline), no images or videos, self-hosted fonts |
-| 43 | Subtle animation | CSS scroll reveal (progressive), activity fade, hover transitions, and (UI V2) a one-off count-up on sample stats inside labelled concept previews |
+| 43 | Subtle animation | CSS scroll reveal (progressive), activity and number fades, hover transitions, and a scroll-driven service-record timeline |
 | 44 | Design tokens | `@theme` in [globals.css](../../src/app/globals.css). See [design-system.md](design-system.md). |
 | 45 | Component system | Mapping table in [design-system.md](design-system.md). **Deviation:** no `Testimonial` component, since there are no real testimonials. |
 | 46 | Fictional mock data only | [src/data/demo.ts](../../src/data/demo.ts); guard tests ban emails, phone numbers and street addresses |

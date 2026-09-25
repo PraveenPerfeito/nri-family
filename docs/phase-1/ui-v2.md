@@ -18,11 +18,11 @@ The "Premium UI/UX V2" brief (2026-09-25) restyled the presentation layer of the
 | 11 | Radial ecosystem around "Your Family Office" | [ecosystem-radial.tsx](../../src/components/marketing/home/ecosystem-radial.tsx): raised night centre node, orbits, dashed connectors; a connected list on phones |
 | 12 | Service hierarchy, not identical cards | [services-showcase.tsx](../../src/components/marketing/home/services-showcase.tsx): Property Care flagship with a report visual; Management and Transactions with small visuals; Documents and Family as secondary; a "Not sure where to start?" prompt |
 | 13 | Signature trust timeline with timestamps, status, icons, connectors | [evidence-timeline.tsx](../../src/components/marketing/home/evidence-timeline.tsx): eight timestamped steps from request to invoice, plus the six-question `TrustRecord` |
-| 14 | Sample inspection report, 92/100, 18 photos, 1 video, 1 recommendation | [inspection-report.tsx](../../src/components/property/inspection-report.tsx), labelled "Sample report · Illustrative data". **Deviation:** the property is "Chennai House" (not "Chennai Residence") to match the dashboards. |
+| 14 | Sample inspection report, 92/100, 18 photos, 1 video, 1 recommendation | [inspection-report.tsx](../../src/components/property/inspection-report.tsx), labelled "Illustrative data". **Deviation:** the property is "Chennai House" (not "Chennai Residence") to match the dashboards. |
 | 15 | Access-control diagram and visibility levels | [privacy-access.tsx](../../src/components/marketing/home/privacy-access.tsx): property record → Owner (full access) / Team (required data) / Partner (assigned data); Private / Verified network / Public |
-| 16 | Visionary family-office section; Available today vs Coming, clearly separated | [future-office.tsx](../../src/components/marketing/home/future-office.tsx), driven by `roadmap` in [marketing.ts](../../src/data/marketing.ts). Coming items are dashed, muted and labelled "In development". |
-| 17 | Polished dashboard with 03/02/01, progress bars, timeline and an approval card | [workspace-dashboard.tsx](../../src/components/marketing/home/workspace-dashboard.tsx): Garden maintenance ₹8,500 with [Review] [Approve], labelled "Concept preview · Sample data" |
-| 18 | Controlled marketplace: visibility ladder + sample card | [property-control.tsx](../../src/components/marketing/home/property-control.tsx): Chennai · Independent Residence · 2,400 sq.ft · Verified network · Contact through platform, labelled "Sample listing" |
+| 16 | Visionary family-office section; Available today vs Coming, clearly separated | [future-office.tsx](../../src/components/marketing/home/future-office.tsx), driven by `roadmap` in [marketing.ts](../../src/data/marketing.ts): Today (available now) → Next (dashed, muted, "Coming to the platform") → Vision. |
+| 17 | Polished dashboard with 03/02/01, progress bars, timeline and an approval card | [workspace-dashboard.tsx](../../src/components/marketing/home/workspace-dashboard.tsx): Garden maintenance ₹8,500 with [Review] [Approve], labelled "Concept preview" |
+| 18 | Controlled marketplace: visibility ladder + sample card | [property-control.tsx](../../src/components/marketing/home/property-control.tsx): Chennai · Independent Residence · 2,400 sq.ft · Verified network · Contact through platform, labelled "Illustrative data" |
 | 19 | Six-stage journey, horizontal on desktop, vertical on mobile, small visuals | [journey.tsx](../../src/components/marketing/home/journey.tsx), from `journeyStages` |
 | 20 | Clean accessible FAQ with hover and smooth expand | [faq-list.tsx](../../src/components/shared/faq-list.tsx): native `<details>`; height transition via `::details-content` |
 | 21 | Premium closing CTA on a deep surface | [cta-band.tsx](../../src/components/marketing/cta-band.tsx): full-bleed night band with contours; the home version uses the brief's exact copy |
@@ -40,7 +40,23 @@ The "Premium UI/UX V2" brief (2026-09-25) restyled the presentation layer of the
 | 34–35 | Lint, build, tests; browser visual QA at 1440×900, 1920×1080, 390×844, 375×812 | See QA record below |
 | 38 | No backend rebuild, no Phase 2, no auth, no fake functionality | Presentation layer only |
 
-**Copy changed on purpose.** V2 kept the Phase 1 messaging except where the brief gave new wording: the hero supporting line ("Property care, local execution, documents and family assistance — managed transparently from anywhere."), "Inspection completed" in the hero activity, and "Available today" instead of "Available now". The full Phase 1 supporting line still serves as the site description in metadata. Everything else from the Phase 1 content audit is still on the page (330 of 333 items; those three are the ones above).
+**Copy changed on purpose.** V2 kept the Phase 1 messaging except where the brief gave new wording: the hero supporting line ("Property care, local execution, documents and family assistance — managed transparently from anywhere."), "Inspection completed" in the hero activity. The full Phase 1 supporting line still serves as the site description in metadata. Everything else from the Phase 1 content audit is still on the page (331 of 333 items; those two are the ones above).
+
+## Final polish pass (2026-09-25)
+
+A refinement of V2 (no new sections, no new content). Each home section now answers one question: what is this (hero), why do I need it (problem), what does it replace (solution), what can you help with (services), why trust you (transparency), how is my information controlled (privacy), where is this going (family office), what will the product look like (dashboard), can I manage transactions (property), how does it work (journey), what questions remain (FAQ), what now (CTA).
+
+| Brief | Change |
+| --- | --- |
+| Hero | Kept as it was, floating approval and map cards included (the owner's decision); the demo greeting is now a neutral "Good morning" with no personal name |
+| Detailed dashboard | The full product showcase: health bars and average, activity, approval, **reports** and upcoming; neutral avatar icon |
+| Transparency as the signature | "Every service record answers" (Who, What, When, Where, Proof, Cost) as one typographic principle beside the service record. The record is a single day (09:42 → 16:30), each step tagged with the question it answers; the rail fills and steps light up as they cross the middle of the screen (scroll-driven CSS, static with reduced motion). The sample report follows as proof. |
+| One sample-data badge | `DemoLabel` has exactly two labels: **Concept preview** (product UI) and **Illustrative data** (example content). Long captions became screen-reader captions. |
+| Services hierarchy | Property Care is primary ("Start here", care-plan preview); Management and Transactions secondary; Documents and Family supporting (quieter cards, tags instead of check lists). The care plan replaces a second copy of the inspection report. |
+| Privacy | A permission interface: property, visibility, Owner / Team / Partner access levels, and a visibility switch |
+| Family office | An evolution: Today (available now) → Next (coming to the platform) → Vision (Digital Family Office) |
+| Typography | Signature sections keep 56px headings; supporting sections use 48px (`SectionHeader size`) |
+| Performance | The counter animation re-ran style and layout on every frame; numbers now fade in instead. Main-thread work on a throttled phone profile fell from ~2.2 s to ~1.5 s. |
 
 ## Scroll rhythm
 
@@ -51,9 +67,9 @@ The "Premium UI/UX V2" brief (2026-09-25) restyled the presentation layer of the
 | 3 | Problem | canvas | Editorial text + question list; vertical path |
 | 4 | Solution | white band | Centred header; radial ecosystem |
 | 5 | Services | canvas | Asymmetric panels |
-| 6 | Trust / evidence | subtle band | Split header; staggered timeline and report; six-question grid |
-| 7 | Privacy | canvas | Text and principles; access-control tree |
-| 8 | Digital family office | night | Centred header; convergence diagram; today vs coming |
+| 6 | Trust / evidence | subtle band | Split header; six-question principle beside the service record; report as proof |
+| 7 | Privacy | canvas | Text and principles; permission interface |
+| 8 | Digital family office | night | Centred header; Today → Next → Vision |
 | 9 | Dashboard | canvas | Centred header; full-width product window |
 | 10 | Property | white band | Visibility ladder; floating sample listing |
 | 11 | How it works | canvas | Header with CTAs; six-stage track |

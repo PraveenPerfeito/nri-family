@@ -1,28 +1,46 @@
 import type { ReactNode } from "react";
-import { ArrowRight, Camera, Check, Circle } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Circle } from "lucide-react";
 import Link from "next/link";
 import { serviceIcons } from "@/components/marketing/service-icons";
+import { DemoLabel } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { routes } from "@/config/routes";
 import { getService, type ServiceCategory } from "@/config/services";
 import { cn } from "@/lib/utils/cn";
 
-function ServiceLabel({ service }: { service: ServiceCategory }) {
+function ServiceLabel({ service, children }: { service: ServiceCategory; children?: ReactNode }) {
   const Icon = serviceIcons[service.slug];
   return (
-    <p className="text-label flex items-center gap-2 text-brand">
-      <Icon aria-hidden className="size-3.5" strokeWidth={2} />
-      {service.name}
+    <p className="flex flex-wrap items-center gap-2.5">
+      <span className="text-label flex items-center gap-2 text-brand">
+        <Icon aria-hidden className="size-3.5" strokeWidth={2} />
+        {service.name}
+      </span>
+      {children}
     </p>
   );
 }
 
-function Highlights({ items, columns = 1 }: { items: string[]; columns?: 1 | 2 }) {
+/** Primary service: a check list in two columns. */
+function Highlights({ items }: { items: string[] }) {
   return (
-    <ul className={cn("grid gap-x-6 gap-y-2 text-sm text-ink", columns === 2 && "sm:grid-cols-2")}>
+    <ul className="grid gap-x-6 gap-y-2 text-sm text-ink sm:grid-cols-2">
       {items.map((h) => (
         <li key={h} className="flex items-start gap-2">
           <Check aria-hidden className="mt-0.5 size-4 shrink-0 text-brand" strokeWidth={2} />
+          {h}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Secondary and supporting services: the same items, as quiet tags. */
+function Tags({ items }: { items: string[] }) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {items.map((h) => (
+        <li key={h} className="rounded-full border border-line-subtle bg-canvas px-2.5 py-1 text-xs text-ink-muted">
           {h}
         </li>
       ))}
@@ -46,53 +64,46 @@ function ExploreLink({ service }: { service: ServiceCategory }) {
 }
 
 function Panel({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <li className={cn("reveal flex flex-col rounded-panel border border-line bg-surface p-6 transition-[border-color,box-shadow] duration-200 hover:border-line-strong hover:shadow-raised sm:p-8", className)}>
-      {children}
-    </li>
-  );
+  return <li className={cn("reveal flex flex-col rounded-panel border p-6 transition-[border-color,box-shadow] duration-200 sm:p-8", className)}>{children}</li>;
 }
 
-/** Mini report used in the Property Care feature (sample data). */
-function CareVisual() {
-  const rows = [
-    ["Building", "Good"],
-    ["Water", "Good"],
-    ["Electricity", "Good"],
-    ["Garden", "Attention"],
-  ] as const;
+/** Property Care: the care plan a family starts with (illustrative). */
+function CarePlan() {
+  const plan = [
+    { label: "Property inspection", cadence: "Monthly" },
+    { label: "Maintenance and repairs", cadence: "On request, quoted first" },
+    { label: "Garden care", cadence: "Monthly" },
+    { label: "Security checks", cadence: "Every visit" },
+  ];
   return (
-    <div aria-hidden className="rounded-card border border-line-subtle bg-canvas/70 p-4 sm:p-6">
-      <div className="flex items-center justify-between">
+    <div aria-hidden className="rounded-card border border-line-subtle bg-canvas/80 p-4 sm:p-6">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-label text-ink-subtle">Inspection · Chennai House</p>
-          <p className="mt-1 text-xs text-ink-subtle">Mon 11:40 · Sample report</p>
+          <p className="text-label text-ink-subtle">Care plan</p>
+          <p className="mt-1 text-base font-semibold tracking-tight text-ink">Chennai House</p>
         </div>
-        <p className="text-2xl font-semibold tracking-tight text-ink tabular-nums">
-          92<span className="text-sm font-medium text-ink-subtle">/100</span>
-        </p>
+        <DemoLabel />
       </div>
-      <ul className="mt-4 grid grid-cols-2 gap-2">
-        {rows.map(([area, status]) => (
-          <li key={area} className="flex items-center justify-between rounded-md border border-line-subtle bg-surface px-3 py-2 text-xs">
-            <span className="text-ink">{area}</span>
-            <span className={cn("flex items-center gap-1.5 font-medium", status === "Good" ? "text-good" : "text-attention")}>
-              <span className={cn("size-1.5 rounded-full", status === "Good" ? "bg-good" : "bg-attention-bright")} />
-              {status}
+      <ul className="mt-4 divide-y divide-line-subtle rounded-control border border-line-subtle bg-surface">
+        {plan.map((p) => (
+          <li key={p.label} className="flex items-center justify-between gap-3 px-3.5 py-2.5 text-[0.8125rem]">
+            <span className="flex items-center gap-2 text-ink">
+              <CheckCircle2 className="size-4 shrink-0 text-brand" strokeWidth={1.75} />
+              {p.label}
             </span>
+            <span className="text-right text-xs text-ink-subtle">{p.cadence}</span>
           </li>
         ))}
       </ul>
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        {[0, 1, 2, 3].map((i) => (
-          <span key={i} className="flex aspect-[4/3] items-center justify-center rounded-md border border-line-subtle bg-[linear-gradient(135deg,var(--color-subtle),var(--color-surface))]">
-            {i === 3 ? <span className="text-xs font-semibold text-ink-muted">+14</span> : <Camera className="size-3.5 text-ink-subtle/60" />}
-          </span>
-        ))}
-      </div>
-      <div className="mt-4 flex items-center justify-between border-t border-line-subtle pt-3 text-xs text-ink-subtle">
-        <span>18 photos · 1 video</span>
-        <span className="font-medium text-attention">1 recommendation</span>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-control border border-line-subtle bg-surface px-3.5 py-3">
+          <p className="text-xs text-ink-subtle">Next visit</p>
+          <p className="mt-0.5 text-sm font-semibold text-ink tabular-nums">12 Oct · 10:00</p>
+        </div>
+        <div className="rounded-control border border-line-subtle bg-surface px-3.5 py-3">
+          <p className="text-xs text-ink-subtle">After every visit</p>
+          <p className="mt-0.5 text-sm font-semibold text-ink">Photos and a report</p>
+        </div>
       </div>
     </div>
   );
@@ -133,7 +144,10 @@ function VisibilityMini() {
   );
 }
 
-/** Services with hierarchy: three primary services, two secondary, one prompt. */
+/**
+ * Services with a clear hierarchy: Property Care is where the platform starts;
+ * Management and Transactions are the next steps; Documents and Family support them.
+ */
 export function ServicesShowcase() {
   const care = getService("property-care");
   const management = getService("property-management");
@@ -143,76 +157,80 @@ export function ServicesShowcase() {
 
   return (
     <ul className="mt-16 grid gap-4 md:grid-cols-2 lg:grid-cols-12">
-      {/* Flagship: Property Care */}
-      <Panel className="md:col-span-2 lg:col-span-12">
-        <div className="grid gap-10 lg:grid-cols-[1fr_1.05fr] lg:items-center lg:gap-14">
+      {/* Primary */}
+      <Panel className="border-line bg-surface bg-[radial-gradient(44rem_22rem_at_100%_0%,rgb(15_90_79/0.06),transparent_65%)] shadow-raised md:col-span-2 lg:col-span-12 lg:p-10">
+        <div className="grid gap-10 lg:grid-cols-[1fr_1fr] lg:items-center lg:gap-16">
           <div className="flex flex-col">
-            <ServiceLabel service={care} />
-            <h3 className="text-display mt-4 text-3xl sm:text-4xl xl:text-[2.5rem]">Inspect · Maintain · Protect</h3>
+            <ServiceLabel service={care}>
+              <span className="rounded-full bg-brand px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.12em] text-white uppercase">Start here</span>
+            </ServiceLabel>
+            <h3 className="text-display mt-5 text-3xl sm:text-4xl xl:text-[2.5rem]">Inspect · Maintain · Protect</h3>
             <p className="mt-4 max-w-md text-ink-muted">{care.summary}</p>
             <div className="mt-7">
-              <Highlights items={care.highlights} columns={2} />
+              <Highlights items={care.highlights} />
             </div>
             <div className="pt-8">
               <ExploreLink service={care} />
             </div>
           </div>
-          <CareVisual />
+          <CarePlan />
         </div>
       </Panel>
 
-      <Panel className="lg:col-span-6">
+      {/* Secondary */}
+      <Panel className="border-line bg-surface hover:border-line-strong hover:shadow-raised lg:col-span-6">
         <ServiceLabel service={management} />
         <h3 className="text-display mt-4 text-2xl">Tenants · Rent · Upkeep</h3>
         <p className="mt-2 text-[0.9375rem] text-ink-muted">{management.summary}</p>
-        <div className="mt-5">
+        <div className="mt-6">
           <RentVisual />
         </div>
         <div className="mt-5 max-sm:hidden">
-          <Highlights items={management.highlights} />
+          <Tags items={management.highlights} />
         </div>
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-7">
           <ExploreLink service={management} />
         </div>
       </Panel>
 
-      <Panel className="lg:col-span-6">
+      <Panel className="border-line bg-surface hover:border-line-strong hover:shadow-raised lg:col-span-6">
         <ServiceLabel service={transactions} />
         <h3 className="text-display mt-4 text-2xl">Sell · Buy · Rent</h3>
         <p className="mt-2 text-[0.9375rem] text-ink-muted">{transactions.summary}</p>
-        <div className="mt-5">
+        <div className="mt-6">
           <VisibilityMini />
         </div>
         <div className="mt-5 max-sm:hidden">
-          <Highlights items={transactions.highlights} />
+          <Tags items={transactions.highlights} />
         </div>
         <p className="mt-4 text-xs leading-relaxed text-ink-subtle">{transactions.scopeNote}</p>
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-7">
           <ExploreLink service={transactions} />
         </div>
       </Panel>
 
-      <Panel className="lg:col-span-4">
+      {/* Supporting */}
+      <Panel className="border-line-subtle hover:border-line lg:col-span-4">
         <ServiceLabel service={documents} />
-        <h3 className="text-display mt-4 text-xl">Organise · Collect · Remind</h3>
+        <h3 className="mt-4 text-lg font-semibold tracking-tight text-ink">Organise · Collect · Remind</h3>
         <p className="mt-2 text-[0.9375rem] text-ink-muted">{documents.summary}</p>
         <div className="mt-5 max-sm:hidden">
-          <Highlights items={documents.highlights} />
+          <Tags items={documents.highlights} />
         </div>
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-7">
           <ExploreLink service={documents} />
         </div>
       </Panel>
 
-      <Panel className="lg:col-span-4">
+      <Panel className="border-line-subtle hover:border-line lg:col-span-4">
         <ServiceLabel service={family} />
-        <h3 className="text-display mt-4 text-xl">Coordinate · Assist · Respond</h3>
+        <h3 className="mt-4 text-lg font-semibold tracking-tight text-ink">Coordinate · Assist · Respond</h3>
         <p className="mt-2 text-[0.9375rem] text-ink-muted">{family.summary}</p>
         <div className="mt-5 max-sm:hidden">
-          <Highlights items={family.highlights} />
+          <Tags items={family.highlights} />
         </div>
         <p className="mt-4 text-xs leading-relaxed text-ink-subtle">{family.scopeNote}</p>
-        <div className="mt-auto pt-6">
+        <div className="mt-auto pt-7">
           <ExploreLink service={family} />
         </div>
       </Panel>
@@ -220,11 +238,11 @@ export function ServicesShowcase() {
       <li className="reveal flex flex-col justify-between rounded-panel border border-dashed border-line-strong p-6 sm:p-8 md:col-span-2 lg:col-span-4">
         <div>
           <p className="text-label text-ink-subtle">Not sure where to start?</p>
-          <p className="text-display mt-4 text-xl">Tell us about your situation.</p>
+          <p className="mt-4 text-lg font-semibold tracking-tight text-ink">Tell us about your situation.</p>
           <p className="mt-2 text-[0.9375rem] text-ink-muted">We&apos;ll suggest what makes sense, what it involves and what it costs.</p>
         </div>
         <div className="pt-8">
-          <ButtonLink href={routes.getStarted} arrow track="cta_clicked" trackProps={{ label: "tell_us", location: "home_services" }}>
+          <ButtonLink href={routes.getStarted} variant="secondary" arrow track="cta_clicked" trackProps={{ label: "tell_us", location: "home_services" }}>
             Tell Us What You Need
           </ButtonLink>
         </div>

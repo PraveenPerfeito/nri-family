@@ -53,7 +53,7 @@ export default function PropertyPage() {
             lead="These are sample listings to show the format. They are not real properties and are not available."
           />
           <div className="flex flex-wrap gap-2">
-            <DemoLabel>Sample data</DemoLabel>
+            <DemoLabel />
             <AvailabilityBadge availability="coming" />
           </div>
         </div>

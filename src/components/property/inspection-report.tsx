@@ -34,7 +34,7 @@ export function InspectionReport() {
             <ClipboardCheck aria-hidden className="size-4 text-brand" />
             Property health report
           </p>
-          <DemoLabel>Sample report · Illustrative data</DemoLabel>
+          <DemoLabel />
         </div>
 
         <div className="p-5 sm:p-6">
@@ -121,7 +121,7 @@ export function InspectionReport() {
           </div>
         </div>
       </div>
-      <figcaption id="report-caption" className="mt-3 text-center text-xs text-ink-subtle">
+      <figcaption id="report-caption" className="sr-only">
         Example of the report you receive after an inspection. Sample property and findings.
       </figcaption>
     </figure>

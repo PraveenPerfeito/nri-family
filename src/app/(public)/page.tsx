@@ -13,7 +13,7 @@ import { WorkspaceDashboard } from "@/components/marketing/home/workspace-dashbo
 import { InspectionReport } from "@/components/property/inspection-report";
 import { FaqList } from "@/components/shared/faq-list";
 import { PrivacyPrinciples } from "@/components/trust/privacy-principles";
-import { TrustRecord } from "@/components/trust/trust-record";
+import { RecordPrinciples } from "@/components/trust/trust-record";
 import { ButtonLink } from "@/components/ui/button";
 import { Section, SectionHeader } from "@/components/ui/section";
 import { routes } from "@/config/routes";
@@ -68,27 +68,28 @@ export default function HomePage() {
         <ServicesShowcase />
       </Section>
 
-      {/* Trust / evidence */}
+      {/* Trust / evidence: the signature section */}
       <Section tone="subtle" labelledBy="trust-title">
         <div className="grid gap-6 lg:grid-cols-2 lg:items-end lg:gap-16">
-          <SectionHeader id="trust-title" eyebrow="Transparency" title="Distance shouldn't mean uncertainty." />
+          <SectionHeader size="lg" id="trust-title" eyebrow="Transparency" title="Distance shouldn't mean uncertainty." />
           <div className="max-w-xl lg:pb-2">
             <p className="text-lg text-ink-muted sm:text-xl">
               Every service should leave you with a clear record of what happened, who handled it and what it cost.
             </p>
           </div>
         </div>
-        <div className="mt-16 grid gap-10 lg:grid-cols-[1.08fr_0.92fr] lg:items-start lg:gap-8">
+        <div className="mt-16 grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+          <div className="lg:sticky lg:top-28 lg:self-start">
+            <RecordPrinciples />
+          </div>
           <EvidenceTimeline />
-          <div className="lg:mt-24">
-            <InspectionReport />
-          </div>
         </div>
-        <div className="mt-20">
-          <p className="text-label text-ink-subtle">Every record answers six questions</p>
-          <div className="mt-5">
-            <TrustRecord />
+        <div className="mt-20 grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+          <div className="lg:sticky lg:top-28 lg:self-start lg:pt-6">
+            <p className="text-label text-ink-subtle">Proof</p>
+            <h3 className="text-display mt-4 text-2xl sm:text-3xl">The report you receive after every inspection.</h3>
           </div>
+          <InspectionReport />
         </div>
       </Section>
 

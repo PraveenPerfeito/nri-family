@@ -60,18 +60,19 @@ All motion is CSS, short and one-off, and fully disabled by `prefers-reduced-mot
 | Fade-up reveal on scroll | `.reveal`; scroll-driven animations, only where supported | ~500ms of scroll |
 | Activity rows fade in, staggered | Hero command center (`.animate-activity`) | 500ms each, 350ms apart |
 | Floating layers settle in | Hero approval and map cards (`.animate-float-in`) | 700ms |
-| Numbers count up once | Sample stats in the two concept previews (`.count-up`, CSS `@property`) | 900ms |
+| Numbers fade up, staggered | Hero stats (`.animate-activity`) | 500ms each |
+| Service record fills as you scroll | `.timeline-fill`, `.timeline-node` with `animation-timeline: view(block 50%)` | Tied to scroll |
 | Approval dot pulses 3 times | Dashboard approval card | 2.4s × 3, never infinite |
 | FAQ open/close height | `details.faq-item::details-content` where supported | 300ms |
 
-The count-up only runs inside previews that are visibly labelled "Sample data · Concept preview", and the final value is always what is rendered, so nothing reads as live data. There is no parallax, no infinite animation and no animation library.
+Only transform, opacity and colour are animated. A counter-based count-up was removed in the final polish because it re-ran style and layout on every frame. There is no parallax, no infinite animation and no animation library.
 
 ## Components
 
 | Component | File | Notes |
 | --- | --- | --- |
 | `ButtonLink`, `Button`, `buttonClasses` | [ui/button.tsx](../../src/components/ui/button.tsx) | Variants `primary`, `secondary`, `quiet`, `ghost`; tones `light`, `night`; built-in analytics props |
-| `Badge`, `StatusBadge`, `AvailabilityBadge`, `DemoLabel` | [ui/badge.tsx](../../src/components/ui/badge.tsx) | `DemoLabel` must accompany any sample data |
+| `Badge`, `StatusBadge`, `AvailabilityBadge`, `DemoLabel` | [ui/badge.tsx](../../src/components/ui/badge.tsx) | `DemoLabel kind="concept"` ("Concept preview", product UI) or `kind="illustrative"` ("Illustrative data", example content): the only two sample labels |
 | `Card`, `FeatureCard`, `IconTile` | [ui/card.tsx](../../src/components/ui/card.tsx) | Small icon tiles; icons support content, never dominate |
 | `Section`, `SectionHeader`, `Eyebrow` | [ui/section.tsx](../../src/components/ui/section.tsx) | |
 | `ContourLines` | [ui/contours.tsx](../../src/components/ui/contours.tsx) | Decorative, `aria-hidden` |
@@ -80,16 +81,16 @@ The count-up only runs inside previews that are visibly labelled "Sample data ·
 | `CommandCenter` | [marketing/home/command-center.tsx](../../src/components/marketing/home/command-center.tsx) | Hero "My Family Office" preview: stats, health bars, sparkline, activity timeline, floating approval and map cards |
 | `DistanceStory` | [marketing/home/distance-story.tsx](../../src/components/marketing/home/distance-story.tsx) | Editorial problem section with a vertical path |
 | `EcosystemRadial` | [marketing/home/ecosystem-radial.tsx](../../src/components/marketing/home/ecosystem-radial.tsx) | Radial on desktop, one connected list on phones |
-| `ServicesShowcase` | [marketing/home/services-showcase.tsx](../../src/components/marketing/home/services-showcase.tsx) | Flagship → two primary → two secondary + prompt |
-| `EvidenceTimeline` | [marketing/home/evidence-timeline.tsx](../../src/components/marketing/home/evidence-timeline.tsx) | Timestamped service record |
-| `PrivacyAccess` | [marketing/home/privacy-access.tsx](../../src/components/marketing/home/privacy-access.tsx) | Access-control tree + listing visibility |
-| `FutureOffice` | [marketing/home/future-office.tsx](../../src/components/marketing/home/future-office.tsx) | Night band; six areas → one office; Available today vs Coming |
+| `ServicesShowcase` | [marketing/home/services-showcase.tsx](../../src/components/marketing/home/services-showcase.tsx) | Primary (Property Care, care plan) → secondary → supporting + prompt |
+| `EvidenceTimeline` | [marketing/home/evidence-timeline.tsx](../../src/components/marketing/home/evidence-timeline.tsx) | Timestamped service record; each step tagged with the question it answers; scroll-driven rail |
+| `PrivacyAccess` | [marketing/home/privacy-access.tsx](../../src/components/marketing/home/privacy-access.tsx) | Permission interface: roles, access levels, visibility switch |
+| `FutureOffice` | [marketing/home/future-office.tsx](../../src/components/marketing/home/future-office.tsx) | Night band; Today → Next → Vision |
 | `WorkspaceDashboard` | [marketing/home/workspace-dashboard.tsx](../../src/components/marketing/home/workspace-dashboard.tsx) | Sidebar (desktop) / icon rail (tablet) / stacked (phone) |
 | `PropertyControl` | [marketing/home/property-control.tsx](../../src/components/marketing/home/property-control.tsx) | Visibility ladder + sample listing card |
 | `Journey` | [marketing/home/journey.tsx](../../src/components/marketing/home/journey.tsx) | Six stages, horizontal on desktop, vertical rail on phones |
 | `PageHero`, `CtaBand`, `ScopeNote`, `LegalPage`, `ServiceCard` | [marketing/](../../src/components/marketing/) | `PageHero` emits breadcrumb JSON-LD; `CtaBand` is the full-bleed night close |
 | `FlowChain`, `Timeline` | [marketing/flow.tsx](../../src/components/marketing/flow.tsx) | Inner pages. `FlowChain` is a rail on mobile and an even track on larger screens |
-| `TrustRecord`, `PrivacyPrinciples`, `VisibilityLevels`, `VisibilityBadge` | [trust/](../../src/components/trust/) | |
+| `TrustRecord`, `RecordPrinciples`, `PrivacyPrinciples`, `VisibilityLevels`, `VisibilityBadge` | [trust/](../../src/components/trust/) | `TrustRecord` (grid, /trust) and `RecordPrinciples` (typographic, home) share one data source |
 | `PropertyCard`, `InspectionReport` | [property/](../../src/components/property/) | The report is labelled "Sample report · Illustrative data" |
 | `Field`, `Input`, `Select`, `Textarea`, `ChoiceGroup`, `ConsentCheckbox` | [forms/fields.tsx](../../src/components/forms/fields.tsx) | Label, hint and error wired through `aria-describedby`; errors use `danger` |
 | `FaqList` | [shared/faq-list.tsx](../../src/components/shared/faq-list.tsx) | Native `<details>`: keyboard and screen-reader friendly with no JS |

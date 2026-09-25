@@ -81,9 +81,9 @@ export const demoListings: DemoListing[] = [
 export type SampleHealth = { id: string; name: string; status: HealthStatus; label: string; score: number };
 export type SampleActivity = { id: string; label: string; detail: string; time: string; state: "done" | "pending" | "scheduled" };
 
-/** Hero "command center": a concept preview of the private workspace. */
+/** Hero "command center": a concept preview of the private workspace. No personal name: a neutral demo greeting. */
 export const commandCenter = {
-  greeting: "Good morning, Arjun",
+  greeting: "Good morning",
   when: "Wednesday · 09:42 IST",
   stats: [
     { label: "Properties", value: 3, attention: false },
@@ -133,26 +133,33 @@ export const workspaceOverview = {
     { id: "t2", time: "09:12", label: "Quote received", detail: "Garden maintenance · ₹8,500", state: "pending" },
     { id: "t3", time: "Yesterday", label: "Plumbing repair completed", detail: "Coimbatore Apartment · invoice attached", state: "done" },
     { id: "t4", time: "Mon", label: "Land inspection scheduled", detail: "Chengalpattu Land · 12 Oct", state: "scheduled" },
+    { id: "t5", time: "1 Sep", label: "September rent received", detail: "Coimbatore Apartment", state: "done" },
   ] satisfies SampleActivity[],
+  reports: [
+    { id: "r1", label: "Inspection report", detail: "Chennai House · 18 photos, 1 video", when: "Today" },
+    { id: "r2", label: "Repair invoice", detail: "Coimbatore Apartment · matches quote", when: "Tue" },
+  ],
   upcoming: [
     { id: "u0", label: "Rent due", detail: "Coimbatore Apartment", when: "5 Oct" },
     { id: "u1", label: "Land inspection", detail: "Chengalpattu Land", when: "12 Oct" },
-    { id: "u2", label: "Property tax reminder", detail: "Chennai House", when: "30 Oct" },
   ],
 };
 
-export type EvidenceStep = { time: string; title: string; detail: string; state: "done" | "current" };
+/** The six questions every service record answers (see TrustRecord on /trust). */
+export type RecordQuestion = "Who" | "What" | "When" | "Where" | "Proof" | "Cost";
 
-/** One sample service record, from request to invoice. */
+export type EvidenceStep = { time: string; title: string; detail: string; answers: RecordQuestion; state: "done" | "current" };
+
+/** One sample service record, from request to invoice, in a single day. */
 export const evidenceTimeline: EvidenceStep[] = [
-  { time: "Mon 09:42", title: "Request received", detail: "Leak reported under the kitchen sink at Chennai House.", state: "done" },
-  { time: "Mon 10:15", title: "Local team assigned", detail: "A verified plumber is scheduled. You see who is going, and when.", state: "done" },
-  { time: "Mon 11:40", title: "Property inspected", detail: "Cause found: a worn pipe joint. 18 photos taken on site.", state: "done" },
-  { time: "Mon 12:20", title: "Report and photos shared", detail: "Findings, photos and a quotation of ₹2,400.", state: "done" },
-  { time: "Mon 13:05", title: "Approved by you", detail: "You approve the quotation from abroad. Nothing starts before this.", state: "done" },
-  { time: "Tue 16:10", title: "Work completed", detail: "Joint replaced and tested for leaks.", state: "done" },
-  { time: "Tue 16:25", title: "Proof uploaded", detail: "Before-and-after photos and a short video.", state: "done" },
-  { time: "Tue 16:30", title: "Invoice shared", detail: "Itemised, and matching the approved quotation.", state: "current" },
+  { time: "09:42", title: "Request received", detail: "Leak reported under the kitchen sink at Chennai House.", answers: "What", state: "done" },
+  { time: "10:15", title: "Local team assigned", detail: "A verified plumber is scheduled. You see who is going, and when.", answers: "Who", state: "done" },
+  { time: "11:40", title: "Property inspected", detail: "Cause found: a worn pipe joint. 18 photos taken on site.", answers: "Where", state: "done" },
+  { time: "12:20", title: "Report and photos", detail: "Findings, photos and a quotation of ₹2,400.", answers: "Proof", state: "done" },
+  { time: "13:05", title: "Approved by owner", detail: "You approve the quotation from abroad. Nothing starts before this.", answers: "Cost", state: "done" },
+  { time: "16:10", title: "Work completed", detail: "Joint replaced and tested for leaks.", answers: "When", state: "done" },
+  { time: "16:25", title: "Proof uploaded", detail: "Before-and-after photos and a short video.", answers: "Proof", state: "done" },
+  { time: "16:30", title: "Invoice shared", detail: "Itemised, and matching the approved quotation.", answers: "Cost", state: "current" },
 ];
 
 /** Great-circle distance to Chennai, rounded (computed from city coordinates). */

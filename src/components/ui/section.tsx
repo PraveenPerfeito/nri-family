@@ -48,6 +48,7 @@ export function SectionHeader({
   align = "left",
   tone = "light",
   as: Heading = "h2",
+  size = "md",
   className,
   children,
 }: {
@@ -58,6 +59,8 @@ export function SectionHeader({
   align?: "left" | "center";
   tone?: "light" | "night";
   as?: "h1" | "h2";
+  /** Section headings: `md` (48px) for most sections, `lg` (56px) for the few signature ones. */
+  size?: "md" | "lg";
   className?: string;
   children?: ReactNode;
 }) {
@@ -68,7 +71,11 @@ export function SectionHeader({
         id={id}
         className={cn(
           "text-display mt-5",
-          Heading === "h1" ? "text-[2.75rem] sm:text-6xl lg:text-[4.5rem]" : "text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem]",
+          Heading === "h1"
+            ? "text-[2.75rem] sm:text-6xl lg:text-[4.5rem]"
+            : size === "lg"
+              ? "text-[2rem] leading-[1.08] sm:text-5xl lg:text-[3.5rem]"
+              : "text-[2rem] leading-[1.08] sm:text-[2.5rem] lg:text-5xl",
           tone === "night" ? "text-white" : "text-ink",
         )}
       >

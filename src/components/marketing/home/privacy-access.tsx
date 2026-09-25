@@ -1,142 +1,107 @@
-import { Check, Globe2, House, Lock, Minus, Users } from "lucide-react";
+import { Globe2, House, Lock, UserRound, Users, Wrench } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import { visibilityLevels } from "@/components/trust/visibility";
+import { DemoLabel } from "@/components/ui/badge";
 import { cn } from "@/lib/utils/cn";
 
-type Role = {
-  who: string;
-  scope: string;
-  sees: string[];
-  hidden: string[];
-  emphasis?: boolean;
-};
+type Role = { who: string; icon: LucideIcon; access: string; sees: string; hidden?: string; owner?: boolean };
 
 /* How access is designed: each role sees only what its part of the work requires (see /trust). */
 const roles: Role[] = [
-  {
-    who: "Owner",
-    scope: "Full access",
-    sees: ["Documents", "Reports and photos", "Costs and approvals", "Visibility settings"],
-    hidden: [],
-    emphasis: true,
-  },
-  {
-    who: "Team",
-    scope: "Required data",
-    sees: ["Request details", "Property location", "Reports and photos"],
-    hidden: ["Unrelated documents"],
-  },
-  {
-    who: "Partner",
-    scope: "Assigned data",
-    sees: ["The assigned task", "Visit time and access"],
-    hidden: ["Your documents", "Other properties"],
-  },
+  { who: "Owner", icon: UserRound, access: "Full access", sees: "Documents, reports, costs and visibility settings", owner: true },
+  { who: "Team", icon: Users, access: "Required data", sees: "Request details, property location and reports", hidden: "Unrelated documents" },
+  { who: "Partner", icon: Wrench, access: "Assigned data", sees: "The assigned task and visit time", hidden: "Your documents and other properties" },
 ];
 
-const levels: { label: string; icon: LucideIcon; lines: string[]; checks: boolean; current?: boolean }[] = [
-  { label: "Private", icon: Lock, lines: ["Owner", "Authorised team"], checks: true, current: true },
-  { label: "Verified network", icon: Users, lines: ["Approved parties"], checks: true },
-  { label: "Public", icon: Globe2, lines: ["Only when the owner chooses"], checks: false },
+const levels: { key: keyof typeof visibilityLevels; label: string; icon: LucideIcon }[] = [
+  { key: "private", label: "Private", icon: Lock },
+  { key: "verified-network", label: "Verified network", icon: Users },
+  { key: "public", label: "Public", icon: Globe2 },
 ];
 
-/** Access-control diagram: one private property record, three roles, three visibility levels. */
+const summary =
+  "Concept preview of the access settings for Chennai House. Visibility: Private. " +
+  "Owner: full access to documents, reports, costs and visibility settings. " +
+  "Team: required data only — request details, property location and reports. " +
+  "Partner: assigned data only — the task and visit time, not your documents or other properties. " +
+  "Visibility can be changed to Verified network or Public only by the owner.";
+
+/** Privacy as a permission interface: one property, three roles, and the visibility switch. */
 export function PrivacyAccess() {
   return (
-    <figure aria-labelledby="access-caption" className="min-w-0">
-      <div className="rounded-panel border border-line bg-surface p-5 shadow-raised sm:p-8">
-        {/* Root: the property record */}
-        <div className="flex justify-center">
-          <div className="flex items-center gap-3 rounded-card border border-line bg-canvas px-4 py-3">
-            <span aria-hidden className="flex size-9 items-center justify-center rounded-control bg-night text-white">
+    <figure aria-label="Concept preview of property access settings" className="min-w-0">
+      <div role="img" aria-label={summary} className="overflow-hidden rounded-panel border border-line bg-surface shadow-raised">
+        {/* Property */}
+        <div className="flex items-center justify-between gap-3 border-b border-line-subtle px-5 py-4 sm:px-6">
+          <span className="flex items-center gap-3">
+            <span className="flex size-9 items-center justify-center rounded-control bg-night text-white">
               <House className="size-4" strokeWidth={1.75} />
             </span>
             <span>
-              <span className="text-label block text-ink-subtle">Property record</span>
-              <span className="mt-0.5 flex items-center gap-1.5 text-sm font-semibold text-ink">
-                Chennai House
-                <Lock aria-hidden className="size-3.5 text-brand" strokeWidth={2.25} />
-                <span className="sr-only">(private)</span>
-              </span>
+              <span className="text-label block text-ink-subtle">Property</span>
+              <span className="mt-0.5 block text-[0.9375rem] font-semibold tracking-tight text-ink">Chennai House</span>
             </span>
-          </div>
+          </span>
+          <DemoLabel kind="concept" />
         </div>
 
-        {/* Connectors: trunk + bus (from sm), a single rail on phones */}
-        <div aria-hidden className="relative mx-auto h-8 w-px bg-line-strong" />
-        <div aria-hidden className="relative mx-[calc((100%_-_2rem)/6)] hidden h-px bg-line-strong sm:block" />
+        <div className="flex items-center justify-between gap-3 border-b border-line-subtle bg-canvas/60 px-5 py-3 sm:px-6">
+          <span className="text-sm text-ink-muted">Visibility</span>
+          <span className="text-label inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-ink">
+            <Lock className="size-3 text-brand" strokeWidth={2.25} />
+            Private
+          </span>
+        </div>
 
-        <ul aria-label="Who can see what" className="grid gap-3 sm:grid-cols-3 sm:gap-4">
-          {roles.map((r) => (
-            <li key={r.who} className="relative flex flex-col sm:pt-6">
-              <span aria-hidden className="absolute top-0 left-1/2 hidden h-6 w-px bg-line-strong sm:block" />
-              <div
-                className={cn(
-                  "flex-1 rounded-card border p-4",
-                  r.emphasis ? "border-brand/35 bg-brand-soft/40" : "border-line bg-surface",
-                )}
-              >
-                <p className="text-label text-ink">{r.who}</p>
-                <p className={cn("mt-1 text-sm font-medium", r.emphasis ? "text-brand-strong" : "text-ink-muted")}>{r.scope}</p>
-                <ul className="mt-3 space-y-1.5 border-t border-line-subtle pt-3 text-[0.8125rem]">
-                  {r.sees.map((s) => (
-                    <li key={s} className="flex items-start gap-2 text-ink">
-                      <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" strokeWidth={2.25} />
-                      <span>
-                        <span className="sr-only">Can see: </span>
-                        {s}
-                      </span>
-                    </li>
-                  ))}
-                  {r.hidden.map((s) => (
-                    <li key={s} className="flex items-start gap-2 text-ink-subtle">
-                      <Minus aria-hidden className="mt-0.5 size-3.5 shrink-0" strokeWidth={2.25} />
-                      <span>
-                        <span className="sr-only">Cannot see: </span>
-                        <span className="line-through decoration-line-strong">{s}</span>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+        {/* Roles */}
+        <div className="px-5 pt-5 sm:px-6">
+          <p className="text-label text-ink-subtle">Who can see what</p>
+        </div>
+        <ul className="px-3 pt-2 pb-3 sm:px-4">
+          {roles.map(({ who, icon: Icon, access, sees, hidden, owner }) => (
+            <li key={who} className="flex items-start gap-3 rounded-control px-2 py-3 sm:gap-4">
+              <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-full", owner ? "bg-brand text-white" : "bg-subtle text-ink-muted")}>
+                <Icon className="size-4" strokeWidth={1.75} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                  <span className="text-label text-ink">{who}</span>
+                  <span
+                    className={cn(
+                      "rounded-md border px-2 py-0.5 text-xs font-medium",
+                      owner ? "border-brand/30 bg-brand-soft text-brand-strong" : "border-line bg-surface text-ink",
+                    )}
+                  >
+                    {access}
+                  </span>
+                </span>
+                <span className="mt-1 block text-[0.8125rem] leading-relaxed text-ink-muted">{sees}</span>
+                {hidden ? <span className="block text-xs text-ink-subtle">Never: {hidden.charAt(0).toLowerCase() + hidden.slice(1)}</span> : null}
+              </span>
             </li>
           ))}
         </ul>
 
-        {/* Listing visibility */}
-        <div className="mt-6 border-t border-line-subtle pt-6">
-          <p className="text-label text-ink-subtle">Listing visibility</p>
-          <ol aria-label="Listing visibility levels" className="mt-3 grid gap-2 sm:grid-cols-3">
-            {levels.map(({ label, icon: Icon, lines, checks, current }) => (
-              <li
-                key={label}
+        {/* Visibility switch */}
+        <div className="border-t border-line-subtle bg-canvas/60 px-5 py-5 sm:px-6">
+          <p className="text-label text-ink-subtle">Change visibility</p>
+          <div className="mt-3 grid grid-cols-3 gap-1 rounded-control border border-line bg-subtle/70 p-1">
+            {levels.map(({ key, label, icon: Icon }) => (
+              <span
+                key={key}
                 className={cn(
-                  "rounded-control border px-3.5 py-3",
-                  current ? "border-brand/40 bg-surface shadow-[0_0_0_3px_rgb(15_90_79/0.08)]" : "border-line-subtle bg-canvas/60",
+                  "flex items-center justify-center gap-1.5 rounded-md px-2 py-2 text-center text-xs font-medium sm:text-[0.8125rem]",
+                  key === "private" ? "bg-surface text-ink shadow-card ring-1 ring-line" : "text-ink-muted",
                 )}
               >
-                <p className="flex items-center justify-between gap-2">
-                  <span className="text-label flex items-center gap-1.5 text-ink">
-                    <Icon aria-hidden className="size-3.5 text-brand" strokeWidth={2} />
-                    {label}
-                  </span>
-                  {current ? <span className="text-[0.625rem] font-semibold tracking-wide text-brand uppercase">Default</span> : null}
-                </p>
-                <ul className="mt-2 space-y-1 text-[0.8125rem] text-ink-muted">
-                  {lines.map((l) => (
-                    <li key={l} className="flex items-start gap-1.5">
-                      {checks ? <Check aria-hidden className="mt-0.5 size-3.5 shrink-0 text-brand" strokeWidth={2.25} /> : null}
-                      {l}
-                    </li>
-                  ))}
-                </ul>
-              </li>
+                <Icon className="size-3.5 shrink-0 max-sm:hidden" strokeWidth={2} />
+                {label}
+              </span>
             ))}
-          </ol>
+          </div>
+          <p className="mt-3 text-xs text-ink-subtle">{visibilityLevels.private.short}. Only the owner can change this.</p>
         </div>
       </div>
-      <figcaption id="access-caption" className="mt-3 text-center text-xs text-ink-subtle">
-        How access is designed: each person sees only what their role requires. Illustrative example.
-      </figcaption>
     </figure>
   );
 }
