@@ -280,6 +280,11 @@
     animation-delay: 1050ms;
   }
 
+  /* Page-hero product previews: the window settles in, floating cards follow. */
+  .animate-preview-in {
+    animation: preview-in var(--duration-reveal) var(--ease-calm) 100ms both;
+  }
+
   .animate-float-in {
     animation: float-in 700ms var(--ease-calm) 400ms both;
   }
@@ -307,6 +312,17 @@
   from {
     opacity: 0;
     transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes preview-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
   to {
     opacity: 1;

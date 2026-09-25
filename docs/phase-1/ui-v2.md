@@ -58,6 +58,23 @@ A refinement of V2 (no new sections, no new content). Each home section now answ
 | Typography | Signature sections keep 56px headings; supporting sections use 48px (`SectionHeader size`) |
 | Performance | The counter animation re-ran style and layout on every frame; numbers now fade in instead. Main-thread work on a throttled phone profile fell from ~2.2 s to ~1.5 s. |
 
+## Page-hero product previews (2026-09-25)
+
+Every service page (and For NRIs, How It Works and Trust) now shows **what managing that service will feel like** on the right of the hero, instead of empty decorative space. The left side (headline, copy, CTAs) is unchanged. The previews use the same fictional family office as the homepage, so moving between pages reveals one platform:
+
+| Page | Preview | Shows |
+| --- | --- | --- |
+| `/property-care` | `PropertyHealthPreview` | Chennai House, 92/100, condition by area, latest inspection (18 photos, 1 video, 1 recommendation); floating photo strip. The full sample report moved to the "See what happened" section. |
+| `/property-management` | `RentalPreview` | Coimbatore Apartment: occupied, active lease, ₹32,000 rent received, next inspection 12 Oct, an open AC request, recent activity; floating rent and health cards |
+| `/property-transactions` | `TransactionPreview` | Selling an independent residence: 4 of 7 steps, current step, visibility "Verified network · Owner controlled"; floating enquiries card |
+| `/document-assistance` | `DocumentsPreview` | Property documents with status and renewal indicators, private access; floating "property tax due" card. The "document vault is coming" note stays under it. |
+| `/family-assistance` | `LocalAssistancePreview` | A scheduled home maintenance visit in Chennai, the coordinator, activity and the promised photo update. No medical framing. |
+| `/for-nris` | `FamilyOfficePreview` | The whole family office: 03 / 02 / 01, properties, recent activity |
+| `/how-it-works` | `RequestWorkflowPreview` | One request moving through its steps, the current one (approval) highlighted, with times |
+| `/trust` | `ServiceRecordPreview` | A complete record: Who, What, When, Where, Proof, Cost |
+
+Built from one small kit in [src/components/preview/preview.tsx](../../src/components/preview/preview.tsx): `ProductPreviewShell` (window, back plate, entrance motion), `PreviewHeader` (icon, title, `DemoLabel`), `PreviewSection`, `PreviewTitle`, `PreviewMetric`, `PreviewStatus`, `PreviewActivity`, `PreviewTimeline`, `PreviewProgress`, `PreviewDivider` and `FloatingCard`. Floating cards only overlap the window's outer edge (never its content) and appear from `lg` up; on phones the preview sits below the CTAs as one compact window. Every window is one image to assistive technology, with a plain-language summary.
+
 ## Scroll rhythm
 
 | # | Section | Surface | Composition |

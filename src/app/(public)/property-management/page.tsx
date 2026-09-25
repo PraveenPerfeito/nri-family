@@ -1,6 +1,7 @@
 import { CtaBand } from "@/components/marketing/cta-band";
 import { FlowChain } from "@/components/marketing/flow";
 import { PageHero } from "@/components/marketing/page-hero";
+import { RentalPreview } from "@/components/preview/service-previews";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { OfferingsGrid, RelatedServices, ServicePageMeta } from "@/components/marketing/service-page";
 import { ButtonLink } from "@/components/ui/button";
@@ -34,6 +35,7 @@ export default function PropertyManagementPage() {
             </ButtonLink>
           </>
         }
+        aside={<RentalPreview />}
       />
 
       <Section tone="surface" labelledBy="pm-flow">

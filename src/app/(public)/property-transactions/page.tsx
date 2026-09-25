@@ -1,6 +1,7 @@
 import { Check, Home, KeyRound, Tag } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { PageHero } from "@/components/marketing/page-hero";
+import { TransactionPreview } from "@/components/preview/service-previews";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { RelatedServices, ServicePageMeta } from "@/components/marketing/service-page";
 import { VisibilityLevels } from "@/components/trust/visibility";
@@ -75,6 +76,7 @@ export default function PropertyTransactionsPage() {
             </ButtonLink>
           </>
         }
+        aside={<TransactionPreview />}
       />
 
       <Section labelledBy="tx-tracks">

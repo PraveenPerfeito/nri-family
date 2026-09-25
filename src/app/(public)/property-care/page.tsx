@@ -1,4 +1,5 @@
 import { InspectionReport } from "@/components/property/inspection-report";
+import { PropertyHealthPreview } from "@/components/preview/service-previews";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { FlowChain } from "@/components/marketing/flow";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -34,7 +35,7 @@ export default function PropertyCarePage() {
             </ButtonLink>
           </>
         }
-        aside={<InspectionReport />}
+        aside={<PropertyHealthPreview />}
       />
 
       <Section labelledBy="care-offerings">
@@ -54,6 +55,9 @@ export default function PropertyCarePage() {
         />
         <div className="mt-12">
           <FlowChain steps={["Request", "Visit", "Report", "Quote", "Approve", "Fix", "Proof"]} label="Property care process" />
+        </div>
+        <div className="mx-auto mt-16 max-w-2xl">
+          <InspectionReport />
         </div>
       </Section>
 

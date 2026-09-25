@@ -1,6 +1,7 @@
 import { Building, HandCoins, Home, KeyRound, LandPlot, ScrollText, ShoppingBag, Users } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { PageHero } from "@/components/marketing/page-hero";
+import { FamilyOfficePreview } from "@/components/preview/service-previews";
 import { ButtonLink } from "@/components/ui/button";
 import { FeatureCard } from "@/components/ui/card";
 import { Section, SectionHeader } from "@/components/ui/section";
@@ -45,6 +46,7 @@ export default function ForNrisPage() {
             Tell Us What You Need
           </ButtonLink>
         }
+        aside={<FamilyOfficePreview />}
       />
 
       <Section labelledBy="worries-title">

@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { FlowChain } from "@/components/marketing/flow";
 import { PageHero } from "@/components/marketing/page-hero";
+import { ServiceRecordPreview } from "@/components/preview/service-previews";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { TrustRecord } from "@/components/trust/trust-record";
 import { VisibilityLevels } from "@/components/trust/visibility";
@@ -107,6 +108,7 @@ export default function TrustPage() {
             Read our privacy policy
           </ButtonLink>
         }
+        aside={<ServiceRecordPreview />}
       />
 
       <Section labelledBy="pillars-title">
