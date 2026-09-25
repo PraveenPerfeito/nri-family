@@ -8,7 +8,7 @@ Set for every route in [next.config.ts](../../next.config.ts). The QA script ver
 
 | Header | Value / purpose |
 | --- | --- |
-| `Content-Security-Policy` | `default-src 'self'`; scripts, styles, fonts and connections are same-origin only; `img-src 'self' data: blob:`; `frame-ancestors 'none'`; `form-action 'self'`; `base-uri 'self'`; `object-src 'none'` |
+| `Content-Security-Policy` | `default-src 'self'`; scripts, styles and fonts are same-origin only; connections are same-origin plus `https://formsubmit.co` (the enquiry email hand-off); `img-src 'self' data: blob:`; `frame-ancestors 'none'`; `form-action 'self'`; `base-uri 'self'`; `object-src 'none'` |
 | `Strict-Transport-Security` | Production only: 2 years, `includeSubDomains`, `preload` |
 | `X-Frame-Options` | `DENY` (legacy clickjacking protection alongside `frame-ancestors`) |
 | `X-Content-Type-Options` | `nosniff` |
@@ -41,7 +41,7 @@ Contact and Get Started use Next.js Server Actions ([src/lib/leads/actions.ts](.
 
 ## Delivery and secrets
 
-- **Email relay:** on Vercel, leads are emailed to `leadsEmail` (site.ts) through [FormSubmit](https://formsubmit.co), a free relay that needs no account or API key. The request is made server-side, so the inbox address is never exposed in the browser. The first message triggers a one-time activation email. FormSubmit is a third party that **keeps submissions for 30 days**. It's acceptable for pre-launch; before scale, move to a provider with a data-processing agreement or the Admin ERP. The relay only runs when `VERCEL_ENV` is set (or `LEADS_EMAIL_RELAY=true`), so local development and QA never send email.
+- **Email relay:** on Vercel, leads are emailed to `leadsEmail` (site.ts) through [FormSubmit](https://formsubmit.co), a free relay that needs no account or API key. FormSubmit refuses requests from cloud servers such as Vercel's (confirmed in production), so the Server Action first validates, spam-checks and rate-limits the submission, then returns the formatted email to the visitor's browser, which posts it to FormSubmit ([browser-relay.ts](../../src/lib/leads/browser-relay.ts)). The inbox address is therefore visible in that request, but it is already public on the site. If the hand-off fails, the visitor sees the direct email and WhatsApp. The first message triggered a one-time activation email (activated 2026-09-25). FormSubmit is a third party that **keeps submissions for 30 days**. It's acceptable for pre-launch; before scale, move to a provider with a data-processing agreement or the Admin ERP. The relay only runs when `VERCEL_ENV` is set (or `LEADS_EMAIL_RELAY=true`), so local development and QA never send email.
 - **Webhook (optional):** leads can also go to `LEADS_WEBHOOK_URL` as JSON, with an optional `Authorization: Bearer $LEADS_WEBHOOK_SECRET`. A lead counts as delivered if either channel succeeds.
 - Both use an 8s timeout and no caching. The code lives in [src/lib/leads/delivery.ts](../../src/lib/leads/delivery.ts), which imports `server-only`, so it can never be bundled into client code.
 - Public settings (brand, domain, contact channels, company) are plain values in site.ts; no environment variable is needed for them. Secrets stay in server-only env vars. A unit test fails if a `NEXT_PUBLIC_` variable name contains `SECRET`, `TOKEN`, `KEY` or `WEBHOOK`, or if webhook configuration is read anywhere except the delivery module.

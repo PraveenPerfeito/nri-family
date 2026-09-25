@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { siteConfig } from "@/config/site";
 import { createRateLimiter } from "@/lib/security/rate-limit";
 import { contactSchema, getStartedSchema, toFieldErrors } from "@/lib/validation/leads";
-import { deliverLead, type LeadKind } from "./delivery";
+import { deliverLead, emailRelayFor, type LeadKind } from "./delivery";
 import { HONEYPOT_FIELD, MIN_FILL_TIME_MS, STARTED_AT_FIELD, type FormState } from "./types";
 
 /*
@@ -68,7 +68,22 @@ async function guard(formData: FormData): Promise<Guard> {
 }
 
 async function finish(kind: LeadKind, data: Record<string, unknown>): Promise<FormState> {
-  const result = await deliverLead({ kind, submittedAt: new Date().toISOString(), data });
+  const payload = { kind, submittedAt: new Date().toISOString(), data };
+  const result = await deliverLead(payload);
+
+  // Email relay active (on Vercel): hand the validated enquiry to the browser.
+  const relay = emailRelayFor(payload);
+  if (relay) {
+    return {
+      status: "relay",
+      relay,
+      message: SUCCESS_MESSAGE,
+      fallbackMessage: failedMessage(),
+      // Only a real webhook delivery counts (the dev-mode log does not).
+      deliveredServerSide: result.ok && result.delivered,
+    };
+  }
+
   if (result.ok) return { status: "success", message: SUCCESS_MESSAGE };
   if (result.reason === "not-configured") return { status: "error", message: unavailableMessage() };
   return { status: "error", message: failedMessage() };

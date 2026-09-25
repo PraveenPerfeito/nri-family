@@ -17,7 +17,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  // formsubmit.co: the browser completes the email hand-off for enquiries
+  // (see src/lib/leads/browser-relay.ts). Nothing else may be contacted.
+  `connect-src 'self' https://formsubmit.co${isDev ? " ws: wss:" : ""}`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",

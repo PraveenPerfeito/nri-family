@@ -22,13 +22,14 @@ QA_BROWSER=msedge npm run qa      # or chrome | chromium | firefox | webkit
 | File | Covers |
 | --- | --- |
 | `validation.test.ts` | Zod schemas: valid and invalid input, normalisation, length limits, consent; the phone pattern is identical in JS and in the HTML `pattern` (compiled with the `v` flag, as browsers do) |
-| `lead-actions.test.ts` | Server Actions end to end with mocked `fetch`: webhook payload, field errors, honeypot, timing trap, rate limit, honest "not enabled" in production, no personal data in error logs; email relay (sent only on Vercel, never locally; readable formatting; direct-contact fallback if rejected; success if either channel delivers) |
+| `lead-actions.test.ts` | Server Actions end to end with mocked `fetch`: webhook payload, field errors, honeypot, timing trap, rate limit, honest "not enabled" in production, no personal data in error logs; email relay (relay instruction only on Vercel, never locally, never for invalid or spam submissions; readable formatting; fallback message with direct contacts; webhook success reported) |
+| `browser-relay.test.ts` | The browser hand-off: posts the server-built body, success on FormSubmit's `success: "true"`, direct-contact fallback when rejected or offline, success if the webhook already delivered |
 | `deployment-config.test.ts` | Canonical URL resolution (configured domain → Vercel production domain → localhost), WhatsApp link, pre-launch noindex header matches `allowSearchIndexing` |
 | `security-and-analytics.test.ts` | Rate limiter windowing; analytics allow-list drops personal data; JSON-LD escaping |
 | `seo-and-routes.test.ts` | Every route has a page; every nav/footer/service link resolves; sitemap completeness; no future-layer placeholders; metadata helper output |
 | `content-guards.test.ts` | Fails if a brand name is hard-coded instead of read from config (branding not confirmed); fails on unsupported claims (ISO/SOC 2/GDPR certification, "bank-grade", "guaranteed", "No.1", customer counts, awards, hype, testimonials); sample data has no emails, phone numbers or street addresses; secrets are never exposed through `NEXT_PUBLIC_` |
 
-Result at the end of Phase 1: **90 tests passing**.
+Result at the end of Phase 1: **95 tests passing**.
 
 ## Browser QA (`scripts/qa.mjs`)
 

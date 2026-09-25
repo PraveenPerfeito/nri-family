@@ -13,8 +13,6 @@ const { siteConfig } = await import("@/config/site");
 const { EMAIL_RELAY_ENDPOINT, buildEmailBody } = await import("@/lib/leads/delivery");
 
 const relayUrl = `${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(siteConfig.leadsEmail ?? "")}`;
-const relayResponse = (body: object) =>
-  new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
 const calledUrls = () => fetchMock.mock.calls.map(([url]) => String(url));
 
 function contactForm(overrides: Record<string, string> = {}) {
@@ -139,53 +137,43 @@ describe("submitGetStarted", () => {
   });
 });
 
-describe("email relay", () => {
-  it("emails the enquiry to the configured inbox when running on Vercel", async () => {
+describe("email relay (completed by the browser)", () => {
+  it("returns a relay instruction on Vercel instead of contacting FormSubmit from the server", async () => {
     vi.stubEnv("LEADS_WEBHOOK_URL", "");
     vi.stubEnv("VERCEL_ENV", "production");
-    fetchMock.mockResolvedValueOnce(relayResponse({ success: "true", message: "The form was submitted successfully." }));
 
     const state = await submitContact(initialFormState, contactForm());
 
-    expect(state.status).toBe("success");
-    expect(calledUrls()).toEqual([relayUrl]);
-    const init = fetchMock.mock.calls[0][1] as RequestInit;
-    const headers = init.headers as Record<string, string>;
-    expect(headers.referer.startsWith(siteConfig.url)).toBe(true);
-    const body = JSON.parse(String(init.body));
-    expect(body).toMatchObject({ _replyto: "test@example.com", Email: "test@example.com", "Service category": "Property Care" });
-    expect(body._subject).toMatch(/contact enquiry/i);
+    expect(state.status).toBe("relay");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(state.relay?.endpoint).toBe(relayUrl);
+    expect(state.relay?.body).toMatchObject({ _replyto: "test@example.com", Email: "test@example.com", "Service category": "Property Care" });
+    expect(state.relay?.body._subject).toMatch(/contact enquiry/i);
+    expect(state.deliveredServerSide).toBe(false);
+    expect(state.message).toMatch(/received your request/);
+    if (siteConfig.contact.email) expect(state.fallbackMessage).toContain(siteConfig.contact.email);
+    if (siteConfig.contact.whatsapp) expect(state.fallbackMessage).toContain(siteConfig.contact.whatsapp);
   });
 
-  it("never emails from local development or QA runs (no VERCEL_ENV)", async () => {
+  it("never uses the relay in local development or QA runs (no VERCEL_ENV)", async () => {
     const state = await submitContact(initialFormState, contactForm());
     expect(state.status).toBe("success");
+    expect(state.relay).toBeUndefined();
     expect(calledUrls()).toEqual(["https://hooks.example.test/leads"]);
   });
 
-  it("points visitors to direct contact details if the relay rejects the message", async () => {
-    vi.stubEnv("LEADS_WEBHOOK_URL", "");
+  it("reports a successful webhook delivery alongside the relay", async () => {
     vi.stubEnv("VERCEL_ENV", "production");
-    fetchMock.mockResolvedValueOnce(relayResponse({ success: "false", message: "This form needs Activation." }));
-
     const state = await submitContact(initialFormState, contactForm());
-
-    expect(state.status).toBe("error");
-    if (siteConfig.contact.email) expect(state.message).toContain(siteConfig.contact.email);
-    if (siteConfig.contact.whatsapp) expect(state.message).toContain(siteConfig.contact.whatsapp);
+    expect(state.status).toBe("relay");
+    expect(state.deliveredServerSide).toBe(true);
+    expect(calledUrls()).toEqual(["https://hooks.example.test/leads"]);
   });
 
-  it("counts the lead as delivered if either channel succeeds", async () => {
+  it("does not issue a relay for invalid or spam submissions", async () => {
     vi.stubEnv("VERCEL_ENV", "production");
-    fetchMock.mockImplementation(async (url) =>
-      String(url) === relayUrl ? relayResponse({ success: "true" }) : new Response(null, { status: 500 }),
-    );
-
-    const state = await submitContact(initialFormState, contactForm());
-
-    expect(state.status).toBe("success");
-    expect(calledUrls().sort()).toEqual(["https://hooks.example.test/leads", relayUrl].sort());
-    fetchMock.mockImplementation(async () => new Response(null, { status: 204 }));
+    expect((await submitContact(initialFormState, contactForm({ email: "nope" }))).status).toBe("error");
+    expect((await submitContact(initialFormState, contactForm({ [HONEYPOT_FIELD]: "x" }))).relay).toBeUndefined();
   });
 
   it("formats Get Started requests readably", () => {

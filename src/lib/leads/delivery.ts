@@ -1,18 +1,22 @@
 import "server-only";
 import { siteConfig } from "@/config/site";
+import type { RelayInstruction } from "./types";
 
 /**
  * Where enquiries go. Two channels; when both are configured a lead counts as
  * delivered if at least one succeeds.
  *
  * 1. Email to `leadsEmail` (src/config/site.ts) through FormSubmit
- *    (formsubmit.co): a free relay that needs no account or API key. The very
- *    first message triggers a one-time "Activate Form" email to that inbox.
- *    The request is made from the server, so the address never appears in the
- *    browser. It runs only on deployed Vercel environments (VERCEL_ENV is set),
- *    or when LEADS_EMAIL_RELAY=true on another host, so local development and
- *    automated QA never email the owner. FormSubmit keeps submissions for 30 days.
- * 2. Webhook (CRM, automation tool, future internal API):
+ *    (formsubmit.co), a free relay that needs no account or API key. The first
+ *    message triggers a one-time "Activate Form" email to that inbox.
+ *    FormSubmit refuses requests from cloud servers (such as Vercel's), so the
+ *    server builds the email here and the visitor's browser hands it over
+ *    (src/lib/leads/browser-relay.ts) — only after the server has validated,
+ *    spam-checked and rate-limited the submission. It is active only on
+ *    deployed Vercel environments (VERCEL_ENV is set), or with
+ *    LEADS_EMAIL_RELAY=true elsewhere, so local development and automated QA
+ *    never email the owner. FormSubmit keeps submissions for 30 days.
+ * 2. Webhook, server-side (CRM, automation tool, future internal API):
  *      LEADS_WEBHOOK_URL     — HTTPS endpoint that receives a JSON POST.
  *      LEADS_WEBHOOK_SECRET  — optional; sent as a Bearer token.
  *
@@ -27,7 +31,8 @@ export type LeadPayload = {
   data: Record<string, unknown>;
 };
 
-export type DeliveryResult = { ok: true } | { ok: false; reason: "not-configured" | "failed" };
+/** `delivered` is false for the development-only log, which accepts but delivers nothing. */
+export type DeliveryResult = { ok: true; delivered: boolean } | { ok: false; reason: "not-configured" | "failed" };
 
 export const EMAIL_RELAY_ENDPOINT = "https://formsubmit.co/ajax/";
 
@@ -76,32 +81,13 @@ export function buildEmailBody(payload: LeadPayload): Record<string, string> {
   return body;
 }
 
-async function sendByEmail(to: string, payload: LeadPayload): Promise<boolean> {
-  try {
-    const res = await fetch(`${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(to)}`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-        // FormSubmit identifies the form by the site it is used on.
-        referer: `${siteConfig.url}/`,
-        origin: siteConfig.url,
-      },
-      body: JSON.stringify(buildEmailBody(payload)),
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      cache: "no-store",
-    });
-    const json = (await res.json().catch(() => null)) as { success?: unknown; message?: unknown } | null;
-    const ok = res.ok && (json?.success === true || json?.success === "true");
-    if (!ok) {
-      const hint = typeof json?.message === "string" && /activat/i.test(json.message) ? "activation pending" : `status ${res.status}`;
-      console.error(`[leads] email relay did not accept the message (${hint})`);
-    }
-    return ok;
-  } catch {
-    console.error("[leads] email relay failed (network error)");
-    return false;
-  }
+/** The email hand-off for the visitor's browser, or null when the relay is not active here. */
+export function emailRelayFor(payload: LeadPayload): RelayInstruction | null {
+  if (!emailRelayEnabled()) return null;
+  return {
+    endpoint: `${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(siteConfig.leadsEmail!)}`,
+    body: buildEmailBody(payload),
+  };
 }
 
 async function sendToWebhook(url: string, payload: LeadPayload): Promise<boolean> {
@@ -124,21 +110,16 @@ async function sendToWebhook(url: string, payload: LeadPayload): Promise<boolean
   }
 }
 
+/** Server-side delivery (the webhook). The email relay is completed by the browser. */
 export async function deliverLead(payload: LeadPayload): Promise<DeliveryResult> {
-  const channels: Array<() => Promise<boolean>> = [];
   const webhookUrl = process.env.LEADS_WEBHOOK_URL;
-  if (webhookUrl) channels.push(() => sendToWebhook(webhookUrl, payload));
-  if (emailRelayEnabled()) channels.push(() => sendByEmail(siteConfig.leadsEmail!, payload));
-
-  if (channels.length === 0) {
+  if (!webhookUrl) {
     if (process.env.NODE_ENV !== "production") {
       // Development only: log that a lead arrived, without personal details.
       console.info(`[leads] ${payload.kind} enquiry received (dev mode, not delivered). Fields: ${Object.keys(payload.data).join(", ")}`);
-      return { ok: true };
+      return { ok: true, delivered: false };
     }
     return { ok: false, reason: "not-configured" };
   }
-
-  const results = await Promise.all(channels.map((send) => send()));
-  return results.some(Boolean) ? { ok: true } : { ok: false, reason: "failed" };
+  return (await sendToWebhook(webhookUrl, payload)) ? { ok: true, delivered: true } : { ok: false, reason: "failed" };
 }

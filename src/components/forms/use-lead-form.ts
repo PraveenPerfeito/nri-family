@@ -1,6 +1,7 @@
 "use client";
 
-import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent } from "react";
+import { useActionState, useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
+import { completeRelay } from "@/lib/leads/browser-relay";
 import { initialFormState, type FormState } from "@/lib/leads/types";
 import type { FieldErrors } from "@/lib/validation/leads";
 
@@ -38,14 +39,33 @@ function validate(form: HTMLFormElement): FieldErrors {
   return errors;
 }
 
+const UNEXPECTED_ERROR: FormState = {
+  status: "error",
+  message: "We couldn't send your request just now. Please check your connection and try again.",
+};
+
 /**
  * Shared behaviour for enquiry forms:
  * - client-side validation with accessible inline messages
  * - server action submit without resetting the form (so data is never lost on error)
+ * - when the server returns a "relay" result, the browser completes the email
+ *   hand-off (see src/lib/leads/browser-relay.ts)
  * - pending state, focus management and a success hook
+ *
+ * With JavaScript, onSubmit calls the server action directly. Without it, the
+ * form posts natively through useActionState; the relay step needs JavaScript,
+ * so that path shows the direct-contact fallback instead.
  */
 export function useLeadForm(action: Action, onSuccess?: (submitted: FormData) => void) {
-  const [state, formAction, pending] = useActionState(action, initialFormState);
+  const [actionState, formAction, actionPending] = useActionState(action, initialFormState);
+  const [result, setResult] = useState<FormState | null>(null);
+  const [submitting, startSubmitting] = useTransition();
+  const pending = submitting || actionPending;
+  const state = useMemo<FormState>(() => {
+    if (result) return result;
+    if (actionState.status === "relay") return { status: "error", message: actionState.fallbackMessage };
+    return actionState;
+  }, [result, actionState]);
   const [clientErrors, setClientErrors] = useState<FieldErrors | null>(null);
   // Fields the user has changed since the last submit; their errors are hidden.
   const [edited, setEdited] = useState<ReadonlySet<string>>(new Set());
@@ -86,7 +106,15 @@ export function useLeadForm(action: Action, onSuccess?: (submitted: FormData) =>
     setEdited(new Set());
     const data = new FormData(form);
     lastSubmittedRef.current = data;
-    startTransition(() => formAction(data));
+    startSubmitting(async () => {
+      try {
+        const serverState = await action(result ?? initialFormState, data);
+        const settled = await completeRelay(serverState);
+        setResult(settled);
+      } catch {
+        setResult(UNEXPECTED_ERROR);
+      }
+    });
   }
 
   const baseErrors: FieldErrors = clientErrors ?? (state.status === "error" ? (state.fieldErrors ?? {}) : {});
