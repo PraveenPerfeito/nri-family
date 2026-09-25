@@ -1,6 +1,7 @@
 import { Check } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { PageHero } from "@/components/marketing/page-hero";
+import { ServicesOverviewPreview } from "@/components/product-preview/previews/services-overview-preview";
 import { ServiceCard } from "@/components/marketing/service-card";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { ButtonLink } from "@/components/ui/button";
@@ -53,6 +54,7 @@ export default function ServicesPage() {
             </ButtonLink>
           </>
         }
+        aside={<ServicesOverviewPreview />}
       />
 
       <Section labelledBy="all-services">

@@ -64,6 +64,7 @@ Every service page (and For NRIs, How It Works and Trust) now shows **what manag
 
 | Page | Preview | Shows |
 | --- | --- | --- |
+| `/services` | `ServicesOverviewPreview` | All five services as modules of one workspace, each with its current state, plus totals (03 / 02 / 01) |
 | `/property-management` | `PropertyManagementPreview` (the reference) | Coimbatore Apartment: occupied, ₹32,000 rent received, next inspection 12 Oct, tenant and location rows, an open AC request, recent activity; floating rent and health cards |
 | `/property-care` | `PropertyCarePreview` | Chennai House, health score 92, condition by area, evidence (18 photos, 1 video, 1 recommendation), last visit and next review; floating photo strip. The full sample report sits in the "See what happened" section. |
 | `/property-transactions` | `PropertyTransactionPreview` | Selling an independent house in Chennai: 2 of 7 steps done, listing preparation in progress, documents 8/8 ready, visibility private and owner controlled, last update, next step |

@@ -6,6 +6,24 @@
  * people, addresses, documents or amounts. Each preview carries a DemoLabel.
  */
 import type { PreviewActivityItem, PreviewStep, PreviewTone } from "@/components/product-preview/types";
+import type { ServiceSlug } from "@/config/services";
+
+/* Services overview: every service as a module of the same family office */
+export const servicesOverviewPreview = {
+  scope: "3 properties · Tamil Nadu",
+  services: [
+    { slug: "property-care", detail: "Chennai House · next visit 12 Oct", status: "Active", tone: "good" },
+    { slug: "property-management", detail: "Coimbatore Apartment · rent received", status: "Active", tone: "good" },
+    { slug: "property-transactions", detail: "Independent House · listing in preparation", status: "In progress", tone: "brand" },
+    { slug: "document-assistance", detail: "12 documents · 1 renewal due", status: "Renewal due", tone: "attention" },
+    { slug: "family-assistance", detail: "Parent support · today, 4:30 PM", status: "Coordinating", tone: "brand" },
+  ] satisfies { slug: ServiceSlug; detail: string; status: string; tone: PreviewTone }[],
+  totals: [
+    { label: "Properties", value: "03" },
+    { label: "Open requests", value: "02" },
+    { label: "Approvals", value: "01", attention: true },
+  ],
+};
 
 /* Property Management (reference preview) */
 export const rentalPreview = {
