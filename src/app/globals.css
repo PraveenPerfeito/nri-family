@@ -46,6 +46,7 @@
   /* Typography */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-display-italic: var(--font-newsreader-italic), var(--font-newsreader), ui-serif, Georgia, serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   /* Radius */
@@ -107,6 +108,16 @@
       scroll-behavior: smooth;
     }
   }
+}
+
+/*
+ * Display italics use a separately loaded, non-preloaded face (see layout.tsx),
+ * so real italics render instead of a slanted roman. Unlayered, so it wins over
+ * the text-display utility.
+ */
+.text-display.italic,
+.text-display .italic {
+  font-family: var(--font-display-italic);
 }
 
 /* Reusable one-off utilities */

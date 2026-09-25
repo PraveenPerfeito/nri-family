@@ -5,12 +5,16 @@ import { homeTitle, siteConfig } from "@/config/site";
 import "./globals.css";
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"], display: "swap" });
-const newsreader = Newsreader({
-  variable: "--font-newsreader",
+/** Display serif for headings (weight 500 only). Preloaded: the hero headline is the LCP element. */
+const newsreader = Newsreader({ variable: "--font-newsreader", subsets: ["latin"], display: "swap", weight: ["500"], style: ["normal"] });
+/** Display italic, used only below the fold, so it is fetched on demand instead of competing with the hero fonts. */
+const newsreaderItalic = Newsreader({
+  variable: "--font-newsreader-italic",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500"],
-  style: ["normal", "italic"],
+  weight: ["500"],
+  style: ["italic"],
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -31,7 +35,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en-IN" className={`${geistSans.variable} ${newsreader.variable} antialiased`}>
+    <html lang="en-IN" className={`${geistSans.variable} ${newsreader.variable} ${newsreaderItalic.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">
         {children}
         <AnalyticsListener />

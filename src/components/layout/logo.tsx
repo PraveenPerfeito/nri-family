@@ -19,12 +19,15 @@ export function LogoMark({ className, inverted }: { className?: string; inverted
   );
 }
 
-/** `compact`: show only the mark below 410px, where the name cannot fit on one line beside the header actions. */
+/**
+ * `compact`: below 410px only the mark is shown (the name cannot fit on one line beside
+ * the header actions); the name stays available to screen readers as the link's name.
+ */
 export function Logo({ tone = "light", compact, className }: { tone?: "light" | "night"; compact?: boolean; className?: string }) {
   return (
-    <Link href="/" className={cn("inline-flex items-center gap-2.5", className)} aria-label={`${siteConfig.name} ${siteConfig.descriptor} — home`}>
+    <Link href="/" className={cn("inline-flex items-center gap-2.5", className)}>
       <LogoMark className="size-8 text-brand" inverted={tone === "night"} />
-      <span className={cn("flex flex-col leading-none whitespace-nowrap", compact && "max-[409px]:hidden")}>
+      <span className={cn("flex flex-col leading-none whitespace-nowrap", compact && "max-[409px]:sr-only")}>
         <span className={cn("text-[0.9375rem] font-semibold tracking-tight sm:text-[1.0625rem]", tone === "night" ? "text-white" : "text-ink")}>
           {siteConfig.name}
         </span>
