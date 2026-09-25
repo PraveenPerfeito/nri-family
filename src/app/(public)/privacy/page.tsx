@@ -53,7 +53,7 @@ export default function PrivacyPage() {
       <p>
         We share information only where it is needed to help you — for example, with a local service provider assigned to a job you
         approved, or with a qualified professional you asked us to coordinate with — and only the details needed for that task. We
-        may also use trusted technology providers (such as hosting and email) who process data on our behalf.
+        may also use trusted technology providers (such as hosting and email) who process data on our behalf. For example, website enquiries are currently delivered to our inbox by email through a form-delivery service.
       </p>
 
       <h2>Retention</h2>

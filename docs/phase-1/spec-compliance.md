@@ -34,13 +34,13 @@ This doc traces each section of the Phase 1 master prompt to where it is impleme
 | 28 | `/how-it-works` 11-step journey + Dubai → Chennai example | `FlowChain` + `Timeline`; example labelled illustrative, no personal names |
 | 29 | `/trust` seven sections; no certification claims | Seven pillars + "What we don't claim"; content guard bans ISO / SOC 2 / GDPR / bank-grade |
 | 30 | `/about` headline, belief, vision, mission; no fake team or numbers | [about/page.tsx](../../src/app/(public)/about/page.tsx) |
-| 31 | `/contact` fields, ten categories, consent | `ContactForm` |
+| 31 | `/contact` fields, ten categories, consent | `ContactForm`, plus the direct email and WhatsApp chat link from site.ts |
 | 32 | `/get-started` fields and exact success message; no response-time promise | `GetStartedForm`; message in [actions.ts](../../src/lib/leads/actions.ts) |
 | 33 | Login/Register fields; never fake account creation; "Coming in Phase 2" | `AuthPreview` (disabled fieldset, labelled). Login shows "Forgot password?" and "New here? Create your Family Office". |
 | 34 | `/property` concept page with fictional cards | `PropertyCard` × 4 (sample data, "Contact through platform") |
 | 35 | Pricing (optional): Essential / Family / Premium, no numbers, "Request a plan" / "Talk to us" | Plans on `/services#plans` |
 | 36 | FAQ (eight required questions) | [src/data/faq.ts](../../src/data/faq.ts) (the 8 plus 2), `/faq` + homepage |
-| 37 | Footer columns, tagline, "© 2026 [Brand Name]", no invented company info | `Footer` (brand and legal name come from config/env) |
+| 37 | Footer columns, tagline, "© 2026 [Brand Name]", no invented company info | `Footer`: brand, contact email and WhatsApp from site.ts; the legal name stays hidden until provided |
 | 38 | Responsive at 320–1920px, no overflow | QA at 10 widths × 19 routes × 4 engines |
 | 39 | Accessibility basics, WCAG 2.2 AA where practical | Skip link, landmarks, one H1, focus rings, labelled controls, `<dialog>` menu, `<details>` FAQ, reduced motion, AA contrast |
 | 40 | Per-page SEO, sitemap, robots, schema | `pageMetadata`, `sitemap.ts`, `robots.ts`, JSON-LD. See [seo.md](seo.md). |
@@ -64,4 +64,4 @@ This doc traces each section of the Phase 1 master prompt to where it is impleme
 | 60 | Eight docs in `/docs/phase-1/` | All present, plus this file |
 | 61–62 | 10-second understanding: trust, control, transparency, privacy, local execution | Hero → problem → solution → trust → privacy order. See [information-architecture.md](information-architecture.md). |
 
-**Branding:** not confirmed. The working name is "NRI Family Office", set through `NEXT_PUBLIC_BRAND_NAME`, with a placeholder mark. See [product-overview.md](product-overview.md).
+**Branding:** not confirmed. The working name is "NRI Family Office" (`brandName` in src/config/site.ts), with a placeholder mark. See [product-overview.md](product-overview.md).

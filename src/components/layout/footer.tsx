@@ -28,7 +28,19 @@ export function Footer() {
                     </a>
                   </li>
                 ) : null}
-                {contact.whatsapp ? <li>WhatsApp: <span className="text-night-text">{contact.whatsapp}</span></li> : null}
+                {contact.whatsapp && contact.whatsappUrl ? (
+                  <li>
+                    WhatsApp:{" "}
+                    <a
+                      className="text-night-text underline-offset-4 hover:underline"
+                      href={contact.whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {contact.whatsapp}
+                    </a>
+                  </li>
+                ) : null}
               </ul>
             ) : null}
           </div>

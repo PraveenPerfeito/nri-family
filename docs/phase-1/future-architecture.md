@@ -63,7 +63,7 @@ Lead (from today's forms) ── converts to ── Customer
 
 | Today | Later |
 | --- | --- |
-| Enquiry forms → `LEADS_WEBHOOK_URL` | The Admin ERP gets a `Lead` table. Swap `deliverLead()` to write there; the forms don't change. |
+| Enquiry forms → email relay (FormSubmit) and/or `LEADS_WEBHOOK_URL` | The Admin ERP gets a `Lead` table. Swap `deliverLead()` to write there; the forms don't change. |
 | `WorkspacePreview`, `InspectionReport` (sample data) | The real NRI Portal overview and report views. The preview components are the visual spec. |
 | `VisibilityLevels`, `VisibilityBadge`, `PropertyCard` | Listing management in the portal, and the public or verified marketplace |
 | `roadmap` in [src/data/marketing.ts](../../src/data/marketing.ts) | Flip items to `available` as features launch, and the site copy updates everywhere |

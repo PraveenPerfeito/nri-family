@@ -1,50 +1,91 @@
 /**
- * Site identity. Brand and company details live here so they can be
- * finalised without touching components.
+ * ─── Public site settings: edit these values here ────────────────────────────
  *
- * BRANDING IS NOT CONFIRMED. The site uses the neutral working name
- * "NRI Family Office" until the final brand is chosen. To rebrand, set
- * NEXT_PUBLIC_BRAND_NAME (and NEXT_PUBLIC_SITE_URL) — no code changes needed.
- *
- * Values that are not yet confirmed are left `undefined` and are simply not
- * rendered — we never invent legal entity names, addresses or phone numbers.
+ * Everything in this block is public (it appears on the website), so it lives
+ * in code rather than in hosting environment variables. Only secrets (the
+ * optional lead webhook settings, see src/lib/leads/delivery.ts) belong in
+ * Vercel's Environment Variables. Empty strings mean "not set" and are not rendered —
+ * we never invent legal entity names, addresses or phone numbers.
  */
-function readSiteUrl(): string {
-  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  // No production domain is decided yet; set NEXT_PUBLIC_SITE_URL before launch.
-  const url = raw && raw.length > 0 ? raw : "http://localhost:3000";
-  return url.replace(/\/+$/, "");
-}
+const settings = {
+  /** BRANDING IS NOT CONFIRMED — neutral working name until the brand is chosen. */
+  brandName: "NRI Family Office",
+  /**
+   * Final canonical origin, e.g. "https://www.example.com", once a domain is
+   * decided. Leave empty on Vercel: the production domain is detected
+   * automatically (the custom domain once added, else *.vercel.app).
+   */
+  productionUrl: "",
+  /** Public contact channels, shown in the footer and on /contact. */
+  contactEmail: "praveenperfeitoo@gmail.com",
+  /** Display format with country code; the WhatsApp link is derived from the digits. */
+  contactWhatsapp: "+91 96001 90022",
+  /** Inbox that receives website enquiries (see src/lib/leads/delivery.ts). */
+  leadsEmail: "praveenperfeitoo@gmail.com",
+  /** Legal entity details. Leave empty until they are finalised. */
+  companyLegalName: "",
+  companyAddress: "",
+  /**
+   * Pre-launch: keep search engines out while the brand is unconfirmed.
+   * Set to true at launch (then commit + push to redeploy).
+   */
+  allowSearchIndexing: false,
+};
 
 function optional(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
 }
 
+/**
+ * Canonical origin, in priority order: the configured production URL, then
+ * Vercel's production domain (VERCEL_PROJECT_PRODUCTION_URL, provided at build
+ * and runtime without a protocol — previews also use it, so their canonical
+ * URLs point at production), then localhost for local development.
+ * Only server code reads this (no client component imports siteConfig).
+ */
+export function resolveSiteUrl(configured: string | undefined, vercelProductionDomain: string | undefined): string {
+  const explicit = optional(configured);
+  const vercel = optional(vercelProductionDomain);
+  const url = explicit ?? (vercel ? `https://${vercel}` : "http://localhost:3000");
+  return url.replace(/\/+$/, "");
+}
+
+/** wa.me link from a display number such as "+91 96001 90022". */
+export function whatsappLink(displayNumber: string): string {
+  return `https://wa.me/${displayNumber.replace(/\D/g, "")}`;
+}
+
+const whatsapp = optional(settings.contactWhatsapp);
+
 export const siteConfig = {
   /** Placeholder brand name until branding is confirmed. */
-  name: optional(process.env.NEXT_PUBLIC_BRAND_NAME) ?? "NRI Family Office",
+  name: settings.brandName,
   /** Shown under the name in the logo lock-up. */
   descriptor: "Tamil Nadu",
   tagline: "Your trusted team in Tamil Nadu.",
   promise: "You live abroad. We take care of what you own here.",
   description:
     "Property care, inspections, maintenance, documentation assistance and local support for NRIs — managed transparently from one secure platform.",
-  url: readSiteUrl(),
+  url: resolveSiteUrl(settings.productionUrl, process.env.VERCEL_PROJECT_PRODUCTION_URL),
   locale: "en_IN",
   region: "Tamil Nadu, India",
-  /** Public contact channels. Shown only when configured. */
+  /** Public contact channels. Shown only when set. */
   contact: {
-    email: optional(process.env.NEXT_PUBLIC_CONTACT_EMAIL),
-    whatsapp: optional(process.env.NEXT_PUBLIC_CONTACT_WHATSAPP),
+    email: optional(settings.contactEmail),
+    whatsapp,
+    whatsappUrl: whatsapp ? whatsappLink(whatsapp) : undefined,
   },
-  /** Legal entity details. Shown only when configured. */
+  /** Where website enquiries are emailed. */
+  leadsEmail: optional(settings.leadsEmail),
+  /** Legal entity details. Shown only when set. */
   company: {
-    legalName: optional(process.env.NEXT_PUBLIC_COMPANY_LEGAL_NAME),
-    registeredAddress: optional(process.env.NEXT_PUBLIC_COMPANY_ADDRESS),
+    legalName: optional(settings.companyLegalName),
+    registeredAddress: optional(settings.companyAddress),
   },
+  allowSearchIndexing: settings.allowSearchIndexing,
   copyrightYear: 2026,
-} as const;
+};
 
 /** Homepage / default document title, e.g. "NRI Family Office — Your trusted team in Tamil Nadu". */
 export const homeTitle = `${siteConfig.name} — Your trusted team in Tamil Nadu`;

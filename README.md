@@ -2,7 +2,7 @@
 
 > You live abroad. We take care of what you own here.
 
-> **Branding is not confirmed.** "NRI Family Office" is a neutral working name. The final brand name, domain and logo will be applied later through `NEXT_PUBLIC_BRAND_NAME` / `NEXT_PUBLIC_SITE_URL` and the placeholder mark in [src/components/layout/logo.tsx](src/components/layout/logo.tsx).
+> **Branding is not confirmed.** "NRI Family Office" is a neutral working name. The final brand name and domain go in the settings block at the top of [src/config/site.ts](src/config/site.ts); the placeholder mark is in [src/components/layout/logo.tsx](src/components/layout/logo.tsx).
 
 Layer 1 of the Digital Family Office platform: the public marketing website for NRIs with property, assets and family in Tamil Nadu. Later layers (NRI Portal, Admin ERP, Vendor Portal, Professional Partner Portal) will be added to this same app. See [docs/phase-1/future-architecture.md](docs/phase-1/future-architecture.md).
 
@@ -21,7 +21,14 @@ cp .env.example .env.local   # optional for local development
 npm run dev                  # http://localhost:3000
 ```
 
-Forms work in development without configuration. Submissions are validated and logged as a redacted notice, and are not delivered anywhere. In production, set `LEADS_WEBHOOK_URL`. See [docs/phase-1/security.md](docs/phase-1/security.md).
+Forms work in development without configuration. Submissions are validated and logged as a redacted notice, and are not delivered anywhere. On Vercel, enquiries are emailed to the inbox set in `src/config/site.ts`. See [docs/phase-1/security.md](docs/phase-1/security.md).
+
+## Settings and deployment
+
+- **Public settings live in code**, not in environment variables: brand name, domain, contact email and WhatsApp, company details and the pre-launch search-indexing switch are all in the settings block at the top of [src/config/site.ts](src/config/site.ts). Edit, commit, push.
+- **Vercel needs no environment variables.** The production domain is detected automatically (`VERCEL_PROJECT_PRODUCTION_URL`), and every push to `main` redeploys.
+- **Enquiry emails** are sent through FormSubmit, a free relay. The first enquiry triggers a one-time "Activate Form" email to the inbox; click it once.
+- **Search engines are blocked until launch** (`allowSearchIndexing: false`). Set it to `true` at launch.
 
 ## Scripts
 

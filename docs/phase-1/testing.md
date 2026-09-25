@@ -22,12 +22,13 @@ QA_BROWSER=msedge npm run qa      # or chrome | chromium | firefox | webkit
 | File | Covers |
 | --- | --- |
 | `validation.test.ts` | Zod schemas: valid and invalid input, normalisation, length limits, consent; the phone pattern is identical in JS and in the HTML `pattern` (compiled with the `v` flag, as browsers do) |
-| `lead-actions.test.ts` | Server Actions end to end with mocked `fetch`: webhook payload, field errors, honeypot, timing trap, rate limit, honest "not enabled" in production, no personal data in error logs |
+| `lead-actions.test.ts` | Server Actions end to end with mocked `fetch`: webhook payload, field errors, honeypot, timing trap, rate limit, honest "not enabled" in production, no personal data in error logs; email relay (sent only on Vercel, never locally; readable formatting; direct-contact fallback if rejected; success if either channel delivers) |
+| `deployment-config.test.ts` | Canonical URL resolution (configured domain → Vercel production domain → localhost), WhatsApp link, pre-launch noindex header matches `allowSearchIndexing` |
 | `security-and-analytics.test.ts` | Rate limiter windowing; analytics allow-list drops personal data; JSON-LD escaping |
 | `seo-and-routes.test.ts` | Every route has a page; every nav/footer/service link resolves; sitemap completeness; no future-layer placeholders; metadata helper output |
 | `content-guards.test.ts` | Fails if a brand name is hard-coded instead of read from config (branding not confirmed); fails on unsupported claims (ISO/SOC 2/GDPR certification, "bank-grade", "guaranteed", "No.1", customer counts, awards, hype, testimonials); sample data has no emails, phone numbers or street addresses; secrets are never exposed through `NEXT_PUBLIC_` |
 
-Result at the end of Phase 1: **79 tests passing**.
+Result at the end of Phase 1: **90 tests passing**.
 
 ## Browser QA (`scripts/qa.mjs`)
 
@@ -95,5 +96,7 @@ Measured on the final build:
 - A screen reader pass: VoiceOver on iOS Safari, and TalkBack or NVDA on the forms and mobile menu
 - Real devices: a mid-range Android on 4G, an iPhone opened from a WhatsApp link (the in-app browser)
 - Lighthouse or PageSpeed Insights on the deployed URL (Core Web Vitals with real network latency)
-- A submission to the real CRM webhook, checking the payload format there
+- One real enquiry on the live site after clicking FormSubmit's activation email, to confirm it arrives in the inbox
+
+> **Never run `npm run qa` against the live site.** It submits real forms, which would email the owner and use up the rate limit. Local runs are safe: the email relay only runs on Vercel.
 - Rich Results Test on `/faq` and a service page

@@ -19,10 +19,25 @@ const limiter = createRateLimiter({ limit: 5, windowMs: 10 * 60 * 1000 });
 
 const SUCCESS_MESSAGE = "Thank you. We've received your request. Our team will review it and contact you.";
 
+/** "email us at … or message us on WhatsApp at …", from whichever channels are configured. */
+function directContact(): string | undefined {
+  const { email, whatsapp } = siteConfig.contact;
+  if (email && whatsapp) return `email us at ${email} or message us on WhatsApp at ${whatsapp}`;
+  if (email) return `email us at ${email}`;
+  if (whatsapp) return `message us on WhatsApp at ${whatsapp}`;
+  return undefined;
+}
+
 function unavailableMessage(): string {
-  return siteConfig.contact.email
-    ? `Online submissions are not enabled yet. Please email us at ${siteConfig.contact.email}.`
-    : "Online submissions are not enabled yet. Please try again soon.";
+  const direct = directContact();
+  return direct ? `Online submissions are not enabled yet. Please ${direct}.` : "Online submissions are not enabled yet. Please try again soon.";
+}
+
+function failedMessage(): string {
+  const direct = directContact();
+  return direct
+    ? `We couldn't send your request just now. Please try again, or ${direct}.`
+    : "Something went wrong while sending your request. Please try again.";
 }
 
 async function clientKey(): Promise<string> {
@@ -56,7 +71,7 @@ async function finish(kind: LeadKind, data: Record<string, unknown>): Promise<Fo
   const result = await deliverLead({ kind, submittedAt: new Date().toISOString(), data });
   if (result.ok) return { status: "success", message: SUCCESS_MESSAGE };
   if (result.reason === "not-configured") return { status: "error", message: unavailableMessage() };
-  return { status: "error", message: "Something went wrong while sending your request. Please try again." };
+  return { status: "error", message: failedMessage() };
 }
 
 export async function submitContact(_prev: FormState, formData: FormData): Promise<FormState> {

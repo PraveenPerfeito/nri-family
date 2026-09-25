@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { siteConfig } from "./src/config/site";
 
 const isDev = process.env.NODE_ENV !== "production";
 
@@ -41,11 +42,20 @@ const securityHeaders = [
     : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
 ];
 
+/**
+ * Pre-launch switch (`allowSearchIndexing` in src/config/site.ts): while it is
+ * false, every response asks search engines not to index the site. It uses a
+ * response header, not a robots.txt Disallow, so crawlers can still fetch pages
+ * and see the instruction. Vercel already sends this header on Preview
+ * deployments; this covers Production.
+ */
+const noIndexHeaders = siteConfig.allowSearchIndexing ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [{ source: "/:path*", headers: [...securityHeaders, ...noIndexHeaders] }];
   },
   async redirects() {
     return [{ source: "/security", destination: "/trust", permanent: true }];

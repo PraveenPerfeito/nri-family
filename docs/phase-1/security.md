@@ -37,12 +37,14 @@ Contact and Get Started use Next.js Server Actions ([src/lib/leads/actions.ts](.
 | **Rate limiting** | 5 submissions per 10 minutes per client ([src/lib/security/rate-limit.ts](../../src/lib/security/rate-limit.ts)). This is in-memory and per instance. On serverless or multi-instance hosting, back the `RateLimiter` interface with a shared store (for example Redis) before relying on it. |
 | **Client IP** | Taken from the first `x-forwarded-for` value, then `x-real-ip`. These headers are only trustworthy when a proxy you control (Vercel, a load balancer or nginx) overwrites them. Do not expose `next start` directly to the internet, or clients can spoof their way past the limit. |
 | **Data minimisation** | The forms ask for name, country, email, phone, needs and a message. The UI explicitly asks people not to send documents or ID numbers. |
-| **Honest failure** | If `LEADS_WEBHOOK_URL` is missing in production, visitors see "Online submissions are not enabled yet", never a fake success. |
+| **Honest failure** | If no delivery channel is available in production, visitors see "Online submissions are not enabled yet", with the direct email and WhatsApp. If delivery fails, they are asked to retry or contact us directly. There is never a fake success. |
 
 ## Delivery and secrets
 
-- Leads go to `LEADS_WEBHOOK_URL` as JSON, with an optional `Authorization: Bearer $LEADS_WEBHOOK_SECRET`, an 8s timeout and no caching. The code lives in [src/lib/leads/delivery.ts](../../src/lib/leads/delivery.ts), which imports `server-only`, so it can never be bundled into client code.
-- Only `NEXT_PUBLIC_*` variables reach the browser, and those hold public information only (site URL, contact channels, company name). A unit test fails if a `NEXT_PUBLIC_` variable name contains `SECRET`, `TOKEN`, `KEY` or `WEBHOOK`, or if webhook configuration is read anywhere except the delivery module.
+- **Email relay:** on Vercel, leads are emailed to `leadsEmail` (site.ts) through [FormSubmit](https://formsubmit.co), a free relay that needs no account or API key. The request is made server-side, so the inbox address is never exposed in the browser. The first message triggers a one-time activation email. FormSubmit is a third party that **keeps submissions for 30 days**. It's acceptable for pre-launch; before scale, move to a provider with a data-processing agreement or the Admin ERP. The relay only runs when `VERCEL_ENV` is set (or `LEADS_EMAIL_RELAY=true`), so local development and QA never send email.
+- **Webhook (optional):** leads can also go to `LEADS_WEBHOOK_URL` as JSON, with an optional `Authorization: Bearer $LEADS_WEBHOOK_SECRET`. A lead counts as delivered if either channel succeeds.
+- Both use an 8s timeout and no caching. The code lives in [src/lib/leads/delivery.ts](../../src/lib/leads/delivery.ts), which imports `server-only`, so it can never be bundled into client code.
+- Public settings (brand, domain, contact channels, company) are plain values in site.ts; no environment variable is needed for them. Secrets stay in server-only env vars. A unit test fails if a `NEXT_PUBLIC_` variable name contains `SECRET`, `TOKEN`, `KEY` or `WEBHOOK`, or if webhook configuration is read anywhere except the delivery module.
 - `.env*` files are git-ignored, except `.env.example`.
 - For multi-instance self-hosting, set `NEXT_SERVER_ACTIONS_ENCRYPTION_KEY` to one stable key across instances. Otherwise action IDs differ between instances.
 

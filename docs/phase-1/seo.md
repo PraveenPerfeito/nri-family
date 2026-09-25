@@ -5,7 +5,8 @@
 | Requirement | Implementation |
 | --- | --- |
 | Unique title and description | `pageMetadata()` in [src/lib/seo/metadata.ts](../../src/lib/seo/metadata.ts). Titles use the template `%s \| <brand>` (currently the working name "NRI Family Office"); the homepage title is "NRI Family Office — Your trusted team in Tamil Nadu". Descriptions are 50–160 characters. QA fails on duplicates. |
-| Canonical URL | `alternates.canonical` from `NEXT_PUBLIC_SITE_URL` + path |
+| Canonical URL | `alternates.canonical`: site origin + path. The origin is `productionUrl` in site.ts, else Vercel's production domain (`VERCEL_PROJECT_PRODUCTION_URL`, which becomes the custom domain once one is added), else localhost. |
+| Pre-launch noindex | While `allowSearchIndexing` is `false` (site.ts), every response carries `X-Robots-Tag: noindex, nofollow`. robots.txt stays open so crawlers can see it. Vercel adds the same header to preview deployments. **Set it to `true` at launch.** |
 | Open Graph / Twitter | Set per page: `og:url`, title, description, site name, locale `en_IN`, 1200×630 image; `summary_large_image` card. The image is referenced explicitly because a page-level `openGraph` object replaces the inherited one (the QA caught this). |
 | One H1, structured headings | `PageHero` or the page renders exactly one `<h1>`. QA checks no heading level is skipped. |
 | Sitemap | [src/app/sitemap.ts](../../src/app/sitemap.ts), generated from `indexableRoutes` |

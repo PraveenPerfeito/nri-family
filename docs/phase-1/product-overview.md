@@ -50,14 +50,15 @@ These need confirmation from the business. Each is easy to change.
 
 | Assumption | Where to change it |
 | --- | --- |
-| **Branding is not confirmed.** The site uses the neutral working name **"NRI Family Office"** (from the spec footer) and a placeholder mark. No brand story is told. | `NEXT_PUBLIC_BRAND_NAME` (read by `siteConfig.name` in [src/config/site.ts](../../src/config/site.ts)); mark in [logo.tsx](../../src/components/layout/logo.tsx), [icon.svg](../../src/app/icon.svg), [opengraph-image.tsx](../../src/app/opengraph-image.tsx) |
-| No production domain yet. Canonical URLs, the sitemap and Open Graph default to `http://localhost:3000`. | `NEXT_PUBLIC_SITE_URL` (required before launch) |
-| No public email, WhatsApp number or legal entity yet. These are hidden until configured. | `NEXT_PUBLIC_CONTACT_*`, `NEXT_PUBLIC_COMPANY_*` |
+| **Branding is not confirmed.** The site uses the neutral working name **"NRI Family Office"** (from the spec footer) and a placeholder mark. No brand story is told. | `brandName` in the settings block of [src/config/site.ts](../../src/config/site.ts); mark in [logo.tsx](../../src/components/layout/logo.tsx), [icon.svg](../../src/app/icon.svg), [opengraph-image.tsx](../../src/app/opengraph-image.tsx) |
+| No final domain yet. The site runs at `https://nri-family.vercel.app`; canonical URLs use Vercel's production domain automatically. | `productionUrl` in site.ts (optional; Vercel is detected automatically) |
+| Contact email and WhatsApp are set (shown in the footer and on /contact). No legal entity yet, so it's hidden. | `contactEmail`, `contactWhatsapp`, `companyLegalName`, `companyAddress` in site.ts |
+| Search engines are kept out until launch (the brand is unconfirmed) | `allowSearchIndexing` in site.ts |
 | All six service areas are operationally available now, coordinated by the team | `roadmap` in [src/data/marketing.ts](../../src/data/marketing.ts) |
 | No published pricing. Plans (Essential / Family / Premium) say "Pricing on request". | [src/app/(public)/services/page.tsx](../../src/app/(public)/services/page.tsx) |
 | No response-time promise after form submission | Success message in [src/lib/leads/actions.ts](../../src/lib/leads/actions.ts) |
 | Privacy Policy and Terms are drafts. They are marked as such on the page and need legal review. | [src/app/(public)/privacy/page.tsx](../../src/app/(public)/privacy/page.tsx), [terms](../../src/app/(public)/terms/page.tsx) |
-| Enquiries are delivered to a webhook (CRM or automation tool) until the Admin ERP exists | `LEADS_WEBHOOK_URL` |
+| Enquiries are emailed to the owner through FormSubmit (a free relay; it keeps submissions for 30 days) until the Admin ERP exists. A webhook can be added. | `leadsEmail` in site.ts; optional `LEADS_WEBHOOK_URL` |
 
 ## Out of scope for Phase 1
 
@@ -68,13 +69,15 @@ These need confirmation from the business. Each is easy to change.
 
 ## Before general launch
 
-- [ ] Confirm the brand name and domain; set `NEXT_PUBLIC_BRAND_NAME` and `NEXT_PUBLIC_SITE_URL`
+- [ ] Confirm the brand name and domain; update `brandName` and `productionUrl` in site.ts, and add the domain in Vercel
 - [ ] Replace the placeholder logo mark (logo.tsx, app/icon.svg, opengraph-image.tsx) and, if wanted, adjust brand colours in globals.css
 - [ ] Remove the `uraavu` pattern from the brand guard in tests/content-guards.test.ts only if that name is chosen
-- [ ] Set contact channels (`NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_CONTACT_WHATSAPP`)
+- [ ] Confirm the contact email and WhatsApp in site.ts are the ones customers should use
 - [ ] Set the legal entity name and address
 - [ ] Have qualified counsel review and finalise the Privacy Policy and Terms, then remove the draft notice in [legal-page.tsx](../../src/components/marketing/legal-page.tsx)
-- [ ] Configure `LEADS_WEBHOOK_URL` (and `LEADS_WEBHOOK_SECRET`) and send a test enquiry end to end
+- [ ] Click the one-time FormSubmit "Activate Form" email, then send a test enquiry end to end
+- [ ] Set `allowSearchIndexing: true` in site.ts at launch
+- [ ] Consider a lead destination with a data-processing agreement (for example a CRM webhook) instead of the free relay
 - [ ] Confirm which services are genuinely operational on day one, and update `roadmap`
 - [ ] Decide on analytics (consent-aware), then update the Privacy Policy
 - [ ] Add a real founder story or team information to `/about` when ready (no stock or invented team members)

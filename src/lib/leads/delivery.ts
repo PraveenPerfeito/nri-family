@@ -1,13 +1,23 @@
 import "server-only";
+import { siteConfig } from "@/config/site";
 
 /**
- * Where enquiries go. Phase 1 supports a webhook (CRM, automation tool or a
- * future internal API). The Admin ERP (Layer 3) will replace this with a
- * first-party leads table.
+ * Where enquiries go. Two channels; when both are configured a lead counts as
+ * delivered if at least one succeeds.
  *
- * Environment:
- *   LEADS_WEBHOOK_URL     — HTTPS endpoint that receives a JSON POST.
- *   LEADS_WEBHOOK_SECRET  — optional; sent as a Bearer token.
+ * 1. Email to `leadsEmail` (src/config/site.ts) through FormSubmit
+ *    (formsubmit.co): a free relay that needs no account or API key. The very
+ *    first message triggers a one-time "Activate Form" email to that inbox.
+ *    The request is made from the server, so the address never appears in the
+ *    browser. It runs only on deployed Vercel environments (VERCEL_ENV is set),
+ *    or when LEADS_EMAIL_RELAY=true on another host, so local development and
+ *    automated QA never email the owner. FormSubmit keeps submissions for 30 days.
+ * 2. Webhook (CRM, automation tool, future internal API):
+ *      LEADS_WEBHOOK_URL     — HTTPS endpoint that receives a JSON POST.
+ *      LEADS_WEBHOOK_SECRET  — optional; sent as a Bearer token.
+ *
+ * The Admin ERP (Layer 3) will replace both with a first-party leads table.
+ * Nothing here logs personal data.
  */
 export type LeadKind = "contact" | "get-started";
 
@@ -19,18 +29,82 @@ export type LeadPayload = {
 
 export type DeliveryResult = { ok: true } | { ok: false; reason: "not-configured" | "failed" };
 
-export async function deliverLead(payload: LeadPayload): Promise<DeliveryResult> {
-  const url = process.env.LEADS_WEBHOOK_URL;
+export const EMAIL_RELAY_ENDPOINT = "https://formsubmit.co/ajax/";
 
-  if (!url) {
-    if (process.env.NODE_ENV !== "production") {
-      // Development only: log that a lead arrived, without personal details.
-      console.info(`[leads] ${payload.kind} enquiry received (dev mode, not delivered). Fields: ${Object.keys(payload.data).join(", ")}`);
-      return { ok: true };
-    }
-    return { ok: false, reason: "not-configured" };
+const TIMEOUT_MS = 8000;
+
+const FIELD_LABELS: Record<string, string> = {
+  name: "Name",
+  country: "Country",
+  email: "Email",
+  phone: "Phone / WhatsApp",
+  category: "Service category",
+  ownsProperty: "Owns property in Tamil Nadu",
+  topics: "Needs help with",
+  message: "Message",
+  details: "Details",
+  consent: "Agreed to be contacted",
+};
+
+function formatValue(value: unknown): string {
+  if (Array.isArray(value)) return value.join(", ");
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (value === "yes") return "Yes";
+  if (value === "no") return "No";
+  const text = String(value ?? "").trim();
+  return text || "—";
+}
+
+function emailRelayEnabled(): boolean {
+  return Boolean(siteConfig.leadsEmail) && (Boolean(process.env.VERCEL_ENV) || process.env.LEADS_EMAIL_RELAY === "true");
+}
+
+/** Human-readable email body: labelled fields plus FormSubmit control fields. */
+export function buildEmailBody(payload: LeadPayload): Record<string, string> {
+  const title = payload.kind === "contact" ? "Contact enquiry" : "Get Started request";
+  const body: Record<string, string> = {
+    _subject: `New ${title.toLowerCase()} — ${siteConfig.name} website`,
+    _template: "table",
+    _captcha: "false",
+    Form: title,
+  };
+  for (const [key, value] of Object.entries(payload.data)) {
+    body[FIELD_LABELS[key] ?? key] = formatValue(value);
   }
+  body["Submitted at"] = new Date(payload.submittedAt).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }) + " IST";
+  if (typeof payload.data.email === "string") body._replyto = payload.data.email;
+  return body;
+}
 
+async function sendByEmail(to: string, payload: LeadPayload): Promise<boolean> {
+  try {
+    const res = await fetch(`${EMAIL_RELAY_ENDPOINT}${encodeURIComponent(to)}`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+        // FormSubmit identifies the form by the site it is used on.
+        referer: `${siteConfig.url}/`,
+        origin: siteConfig.url,
+      },
+      body: JSON.stringify(buildEmailBody(payload)),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: "no-store",
+    });
+    const json = (await res.json().catch(() => null)) as { success?: unknown; message?: unknown } | null;
+    const ok = res.ok && (json?.success === true || json?.success === "true");
+    if (!ok) {
+      const hint = typeof json?.message === "string" && /activat/i.test(json.message) ? "activation pending" : `status ${res.status}`;
+      console.error(`[leads] email relay did not accept the message (${hint})`);
+    }
+    return ok;
+  } catch {
+    console.error("[leads] email relay failed (network error)");
+    return false;
+  }
+}
+
+async function sendToWebhook(url: string, payload: LeadPayload): Promise<boolean> {
   try {
     const res = await fetch(url, {
       method: "POST",
@@ -39,16 +113,32 @@ export async function deliverLead(payload: LeadPayload): Promise<DeliveryResult>
         ...(process.env.LEADS_WEBHOOK_SECRET ? { authorization: `Bearer ${process.env.LEADS_WEBHOOK_SECRET}` } : {}),
       },
       body: JSON.stringify(payload),
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(TIMEOUT_MS),
       cache: "no-store",
     });
-    if (!res.ok) {
-      console.error(`[leads] delivery failed with status ${res.status}`);
-      return { ok: false, reason: "failed" };
-    }
-    return { ok: true };
+    if (!res.ok) console.error(`[leads] webhook delivery failed with status ${res.status}`);
+    return res.ok;
   } catch {
-    console.error("[leads] delivery failed (network error)");
-    return { ok: false, reason: "failed" };
+    console.error("[leads] webhook delivery failed (network error)");
+    return false;
   }
+}
+
+export async function deliverLead(payload: LeadPayload): Promise<DeliveryResult> {
+  const channels: Array<() => Promise<boolean>> = [];
+  const webhookUrl = process.env.LEADS_WEBHOOK_URL;
+  if (webhookUrl) channels.push(() => sendToWebhook(webhookUrl, payload));
+  if (emailRelayEnabled()) channels.push(() => sendByEmail(siteConfig.leadsEmail!, payload));
+
+  if (channels.length === 0) {
+    if (process.env.NODE_ENV !== "production") {
+      // Development only: log that a lead arrived, without personal details.
+      console.info(`[leads] ${payload.kind} enquiry received (dev mode, not delivered). Fields: ${Object.keys(payload.data).join(", ")}`);
+      return { ok: true };
+    }
+    return { ok: false, reason: "not-configured" };
+  }
+
+  const results = await Promise.all(channels.map((send) => send()));
+  return results.some(Boolean) ? { ok: true } : { ok: false, reason: "failed" };
 }

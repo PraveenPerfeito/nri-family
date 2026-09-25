@@ -81,7 +81,7 @@ There is no class-merging step (no `tailwind-merge`). A caller must not pass a c
 
 ## Branding
 
-Branding is not confirmed. The name comes from `NEXT_PUBLIC_BRAND_NAME` (default "NRI Family Office"). The mark is a neutral placeholder (a roofline over a circle). The evergreen palette is brand-neutral and can be retuned in `@theme` once the brand is final.
+Branding is not confirmed. The name comes from `brandName` in [src/config/site.ts](../../src/config/site.ts) (currently "NRI Family Office"). The mark is a neutral placeholder (a roofline over a circle). The evergreen palette is brand-neutral and can be retuned in `@theme` once the brand is final.
 
 ## Motion
 

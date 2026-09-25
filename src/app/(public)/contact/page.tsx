@@ -12,7 +12,7 @@ export const metadata = pageMetadata({
 });
 
 export default function ContactPage() {
-  const { email, whatsapp } = siteConfig.contact;
+  const { email, whatsapp, whatsappUrl } = siteConfig.contact;
   return (
     <>
       <PageHero
@@ -45,10 +45,12 @@ export default function ContactPage() {
                     </a>
                   </li>
                 ) : null}
-                {whatsapp ? (
+                {whatsapp && whatsappUrl ? (
                   <li className="flex items-center gap-3">
                     <MessageCircle aria-hidden className="size-4 text-brand" />
-                    <span className="text-ink">WhatsApp: {whatsapp}</span>
+                    <a href={whatsappUrl} target="_blank" rel="noopener noreferrer" className="text-ink underline-offset-4 hover:underline">
+                      WhatsApp: {whatsapp}
+                    </a>
                   </li>
                 ) : null}
               </ul>

@@ -17,12 +17,13 @@ export function organizationJsonLd(): JsonLd {
     logo: absoluteUrl("/icon.svg"),
     description: siteConfig.description,
     areaServed: { "@type": "State", name: "Tamil Nadu", containedInPlace: { "@type": "Country", name: "India" } },
-    ...(siteConfig.contact.email
+    ...(siteConfig.contact.email || siteConfig.contact.whatsapp
       ? {
           contactPoint: {
             "@type": "ContactPoint",
             contactType: "customer support",
-            email: siteConfig.contact.email,
+            ...(siteConfig.contact.email ? { email: siteConfig.contact.email } : {}),
+            ...(siteConfig.contact.whatsapp ? { telephone: siteConfig.contact.whatsapp } : {}),
             availableLanguage: ["English", "Tamil"],
           },
         }

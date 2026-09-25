@@ -6,9 +6,15 @@ Phase 1 = **Layer 1, public website only**. Layers 2–5 (NRI Portal, Admin ERP,
 
 ## Branding is NOT confirmed
 
-- The working name is **"NRI Family Office"**, from `siteConfig.name` in `src/config/site.ts`, overridable with `NEXT_PUBLIC_BRAND_NAME`. Never hard-code a brand name in components or copy; `tests/content-guards.test.ts` fails on "uraavu".
+- The working name is **"NRI Family Office"**, from `brandName` in the settings block of `src/config/site.ts`. Never hard-code a brand name in components or copy; `tests/content-guards.test.ts` fails on "uraavu".
 - The logo mark is a neutral placeholder (`src/components/layout/logo.tsx`, `src/app/icon.svg`, `src/app/opengraph-image.tsx`). Change all three together when the brand is final.
-- There is no production domain yet. `NEXT_PUBLIC_SITE_URL` defaults to `http://localhost:3000` and must be set before launch.
+- There is no final domain yet. The site is live at https://nri-family.vercel.app (Vercel, deployed from `main`). The canonical URL comes from `productionUrl` in site.ts or, if that's empty, Vercel's `VERCEL_PROJECT_PRODUCTION_URL`.
+
+## Settings: code, not environment variables
+
+- All **public** settings are in the settings block at the top of `src/config/site.ts`: brand name, domain, contact email and WhatsApp, leads inbox, company details and `allowSearchIndexing` (false until launch). The user could not edit Vercel's Sensitive env vars, so don't move these back into env vars.
+- Only **secrets** go in Vercel env vars (optional `LEADS_WEBHOOK_URL` / `LEADS_WEBHOOK_SECRET`).
+- **Enquiries** are emailed via FormSubmit (`src/lib/leads/delivery.ts`), only when `VERCEL_ENV` is set, so local dev and QA never email the owner. Never point `npm run qa` at the live site: it submits real forms.
 
 ## Commands
 
@@ -24,7 +30,7 @@ Next.js 16 (App Router, Turbopack, all pages static), React 19, TypeScript stric
 - `src/app/(public)/`: marketing pages. `src/app/(auth)/`: `/login` and `/register` Phase 2 placeholders.
 - `src/config/`: `site.ts` (brand/contact/company from env), `routes.ts` (every route; drives nav, sitemap and tests), `navigation.ts`, `services.ts` (service copy), `leads.ts` (form options).
 - `src/data/`: `marketing.ts` (the **Available now / Coming** roadmap), `faq.ts`, `demo.ts` (fictional sample data only).
-- `src/lib/`: `seo/` (`pageMetadata`, JSON-LD), `validation/`, `leads/` (Server Actions + webhook delivery), `analytics/`, `security/`.
+- `src/lib/`: `seo/` (`pageMetadata`, JSON-LD), `validation/`, `leads/` (Server Actions + email relay / webhook delivery), `analytics/`, `security/`.
 - `docs/phase-1/`: product, IA, design system, routes, SEO, security, architecture, testing, spec-compliance.
 
 ## Rules (from the master spec; trust is the product)
