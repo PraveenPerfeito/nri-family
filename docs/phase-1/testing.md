@@ -110,12 +110,19 @@ Page weight:
 - **Fonts:** only the faces the first screen needs are preloaded: Geist (sans) and Newsreader roman at weight 500 (23 KB). The italic face is fetched on demand. This took mobile LCP from 2.9 s to 2.2–2.3 s. Earlier steps: an unused Geist Mono was removed (4 files, 171 KB, down to 3 files, 148 KB), then the italic and variable faces were dropped from preload (3 files, 148 KB, down to 2 files, 51 KB).
 - **Measured and rejected:** Next.js's experimental `inlineCss` made LCP worse in local Lighthouse runs (2.8 s, against 2.6–2.7 s without it), so it is not used.
 
-## Manual checks still recommended before launch
+## Device, screen-reader, WhatsApp and email checks (live site, 2026-09-25)
 
-- A screen reader pass: VoiceOver on iOS Safari, and TalkBack or NVDA on the forms and mobile menu
-- Real devices: a mid-range Android on 4G, an iPhone opened from a WhatsApp link (the in-app browser)
-- Lighthouse or PageSpeed Insights on the deployed URL (Core Web Vitals with real network latency)
-- One real enquiry on the live site after clicking FormSubmit's activation email, to confirm it arrives in the inbox
+- **iPhone 15 emulation** (WebKit, the Safari engine, with touch, screen size and iOS user agent): all 19 pages load with no overflow and no console errors. Every text field is 16px or larger, so iOS won't zoom when a field is tapped. The menu, FAQ and form validation work by touch, and the sticky header holds while scrolling.
+- **Screen-reader semantics:** axe-core 4.13 (WCAG 2.2 AA and best practices) on all 19 pages, on iPhone and desktop, finds **0 violations with animations off**. With animations on, axe reports "contrast" on text caught mid fade-in (for example 1.17:1 while nearly transparent). That is a scan-time artifact, not what users see once the text has appeared, and it doesn't affect screen readers. The accessibility tree shows banner, primary navigation, main and footer landmarks; one H1 with a logical H2 outline; and a spoken name for every form field and group.
+- **WhatsApp:** shared links produce a preview with the page title, description and the 1200×630 image (56 KB). In an emulated Android WhatsApp in-app browser (WebView), pages load, the menu works, and the site's WhatsApp link opens a chat with a pre-typed greeting. On iPhone, WhatsApp opens links in Safari's own view, which the iPhone check covers.
+- **Enquiry emails:** one live test of each form. The Contact form and Get Started emails were both **delivered as the branded Resend email** (Resend log: `delivered`), and FormSubmit wasn't needed.
+
+## Optional final checks on real devices
+
+The automated checks above cover the engines these devices use. A quick hands-on look is still worthwhile before launch:
+
+- Open the site from a WhatsApp message on an iPhone and on an Android phone
+- Try VoiceOver (iPhone) or TalkBack (Android) on the Get Started form
+- Run Google's Rich Results Test on `/faq` and a service page (after search indexing is enabled at launch)
 
 > **Against the live site, always set `QA_READONLY=true`.** Normal runs submit real forms, which would email the owner and use up the rate limit. Local runs are safe, because email is only sent on Vercel.
-- Rich Results Test on `/faq` and a service page

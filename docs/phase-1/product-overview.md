@@ -76,7 +76,8 @@ These need confirmation from the business. Each is easy to change.
 - [ ] Set the legal entity name and address
 - [ ] Have qualified counsel review and finalise the Privacy Policy and Terms, then remove the draft notice in [legal-page.tsx](../../src/components/marketing/legal-page.tsx)
 - [x] Click the one-time FormSubmit "Activate Form" email (done 2026-09-25) and send a test enquiry end to end
-- [ ] Add `RESEND_API_KEY` in Vercel for branded enquiry emails (no FormSubmit ads)
+- [x] Add `RESEND_API_KEY` in Vercel for branded enquiry emails (done 2026-09-25; both forms verified)
+- [ ] Replace the Resend key with a **sending-only** key and delete the full-access key that was shared in chat
 - [ ] Set `allowSearchIndexing: true` in site.ts at launch
 - [ ] Consider a lead destination with a data-processing agreement (for example a CRM webhook) instead of the free relay
 - [ ] Confirm which services are genuinely operational on day one, and update `roadmap`
