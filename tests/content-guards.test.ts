@@ -65,7 +65,7 @@ describe("sample data stays fictional", () => {
 
 describe("branding stays configurable", () => {
   // Branding is not confirmed yet. The name must come only from siteConfig
-  // (brandName in src/config/site.ts), never be hard-coded in components or copy.
+  // (brand in the settings block of src/config/site.ts), never be hard-coded in components or copy.
   it("does not hard-code a brand name in source files", () => {
     const hits = sources.filter((f) => /uraavu/i.test(f.text)).map((f) => f.path);
     expect(hits).toEqual([]);

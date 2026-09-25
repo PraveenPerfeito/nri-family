@@ -60,6 +60,7 @@ All motion is CSS, short and one-off, and fully disabled by `prefers-reduced-mot
 | Fade-up reveal on scroll | `.reveal`; scroll-driven animations, only where supported | ~500ms of scroll |
 | Activity rows fade in, staggered | Hero command center (`.animate-activity`) | 500ms each, 350ms apart |
 | Floating layers settle in | Hero approval and map cards, preview floating cards (`.animate-float-in`) | 700ms |
+| Preview progress bars grow in | `.animate-progress` (scaleX) | 700ms |
 | Preview window rises 10px and fades in | Page-hero previews (`.animate-preview-in`) | 500ms |
 | Numbers fade up, staggered | Hero stats (`.animate-activity`) | 500ms each |
 | Service record fills as you scroll | `.timeline-fill`, `.timeline-node` with `animation-timeline: view(block 50%)` | Tied to scroll |
@@ -90,8 +91,8 @@ Only transform, opacity and colour are animated. A counter-based count-up was re
 | `PropertyControl` | [marketing/home/property-control.tsx](../../src/components/marketing/home/property-control.tsx) | Visibility ladder + sample listing card |
 | `Journey` | [marketing/home/journey.tsx](../../src/components/marketing/home/journey.tsx) | Six stages, horizontal on desktop, vertical rail on phones |
 | `PageHero`, `CtaBand`, `ScopeNote`, `LegalPage`, `ServiceCard` | [marketing/](../../src/components/marketing/) | `PageHero` emits breadcrumb JSON-LD; `CtaBand` is the full-bleed night close |
-| Preview kit: `ProductPreviewShell`, `PreviewHeader`, `PreviewSection`, `PreviewTitle`, `PreviewMetric`, `PreviewStatus`, `PreviewActivity`, `PreviewTimeline`, `PreviewProgress`, `PreviewDivider`, `FloatingCard` | [preview/preview.tsx](../../src/components/preview/preview.tsx) | Building blocks for page-hero product previews |
-| Page-hero previews (8) | [preview/service-previews.tsx](../../src/components/preview/service-previews.tsx) | One per service page plus For NRIs, How It Works and Trust; see [ui-v2.md](ui-v2.md#page-hero-product-previews-2026-09-25) |
+| Product preview system: `ProductPreviewShell`, `FloatingCard`, `PreviewHeader`, `PreviewBadge`, `PreviewSection`, `PreviewTitle`, `PreviewDivider`, `PreviewMetric`, `PreviewStatus`, `PreviewRow`, `PreviewAvatar`, `PreviewAction`, `PreviewActivity`, `PreviewTimeline`, `PreviewProgress`, `PreviewStages` | [product-preview/](../../src/components/product-preview/) (one file per part, exported from `index.ts`) | Building blocks for page-hero product previews |
+| Page-hero previews (8) | [product-preview/previews/](../../src/components/product-preview/previews/) | One screen per page; sample data in [src/data/previews.ts](../../src/data/previews.ts); see [ui-v2.md](ui-v2.md#page-hero-product-previews-2026-09-25) |
 | `FlowChain`, `Timeline` | [marketing/flow.tsx](../../src/components/marketing/flow.tsx) | Inner pages. `FlowChain` is a rail on mobile and an even track on larger screens |
 | `TrustRecord`, `RecordPrinciples`, `PrivacyPrinciples`, `VisibilityLevels`, `VisibilityBadge` | [trust/](../../src/components/trust/) | `TrustRecord` (grid, /trust) and `RecordPrinciples` (typographic, home) share one data source |
 | `PropertyCard`, `InspectionReport` | [property/](../../src/components/property/) | The report is labelled "Sample report · Illustrative data" |

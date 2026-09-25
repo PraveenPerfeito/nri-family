@@ -1,5 +1,5 @@
 import { InspectionReport } from "@/components/property/inspection-report";
-import { PropertyHealthPreview } from "@/components/preview/service-previews";
+import { PropertyCarePreview } from "@/components/product-preview/previews/property-care-preview";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { FlowChain } from "@/components/marketing/flow";
 import { PageHero } from "@/components/marketing/page-hero";
@@ -35,7 +35,7 @@ export default function PropertyCarePage() {
             </ButtonLink>
           </>
         }
-        aside={<PropertyHealthPreview />}
+        aside={<PropertyCarePreview />}
       />
 
       <Section labelledBy="care-offerings">

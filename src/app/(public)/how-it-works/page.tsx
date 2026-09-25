@@ -2,7 +2,7 @@ import { MapPin, Plane } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { FlowChain, Timeline } from "@/components/marketing/flow";
 import { PageHero } from "@/components/marketing/page-hero";
-import { RequestWorkflowPreview } from "@/components/preview/service-previews";
+import { WorkflowPreview } from "@/components/product-preview/previews/workflow-preview";
 import { Badge, DemoLabel } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Section, SectionHeader } from "@/components/ui/section";
@@ -52,7 +52,7 @@ export default function HowItWorksPage() {
             Create Your Family Office
           </ButtonLink>
         }
-        aside={<RequestWorkflowPreview />}
+        aside={<WorkflowPreview />}
       />
 
       <Section tone="surface" labelledBy="journey-overview">

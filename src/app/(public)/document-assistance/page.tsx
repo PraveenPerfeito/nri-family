@@ -1,6 +1,6 @@
 import { CtaBand } from "@/components/marketing/cta-band";
 import { PageHero } from "@/components/marketing/page-hero";
-import { DocumentsPreview } from "@/components/preview/service-previews";
+import { DocumentPreview } from "@/components/product-preview/previews/document-preview";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { OfferingsGrid, RelatedServices, ServicePageMeta } from "@/components/marketing/service-page";
 import { AvailabilityBadge } from "@/components/ui/badge";
@@ -32,7 +32,7 @@ export default function DocumentAssistancePage() {
         }
         aside={
           <div>
-            <DocumentsPreview />
+            <DocumentPreview />
             <p className="mt-8 flex flex-wrap items-center justify-center gap-2 text-center text-xs text-ink-subtle lg:justify-end lg:text-right">
               <AvailabilityBadge availability="coming" /> The online document vault is part of the upcoming private workspace.
             </p>

@@ -64,16 +64,16 @@ Every service page (and For NRIs, How It Works and Trust) now shows **what manag
 
 | Page | Preview | Shows |
 | --- | --- | --- |
-| `/property-care` | `PropertyHealthPreview` | Chennai House, 92/100, condition by area, latest inspection (18 photos, 1 video, 1 recommendation); floating photo strip. The full sample report moved to the "See what happened" section. |
-| `/property-management` | `RentalPreview` | Coimbatore Apartment: occupied, active lease, ₹32,000 rent received, next inspection 12 Oct, an open AC request, recent activity; floating rent and health cards |
-| `/property-transactions` | `TransactionPreview` | Selling an independent residence: 4 of 7 steps, current step, visibility "Verified network · Owner controlled"; floating enquiries card |
-| `/document-assistance` | `DocumentsPreview` | Property documents with status and renewal indicators, private access; floating "property tax due" card. The "document vault is coming" note stays under it. |
-| `/family-assistance` | `LocalAssistancePreview` | A scheduled home maintenance visit in Chennai, the coordinator, activity and the promised photo update. No medical framing. |
-| `/for-nris` | `FamilyOfficePreview` | The whole family office: 03 / 02 / 01, properties, recent activity |
-| `/how-it-works` | `RequestWorkflowPreview` | One request moving through its steps, the current one (approval) highlighted, with times |
-| `/trust` | `ServiceRecordPreview` | A complete record: Who, What, When, Where, Proof, Cost |
+| `/property-management` | `PropertyManagementPreview` (the reference) | Coimbatore Apartment: occupied, ₹32,000 rent received, next inspection 12 Oct, tenant and location rows, an open AC request, recent activity; floating rent and health cards |
+| `/property-care` | `PropertyCarePreview` | Chennai House, health score 92, condition by area, evidence (18 photos, 1 video, 1 recommendation), last visit and next review; floating photo strip. The full sample report sits in the "See what happened" section. |
+| `/property-transactions` | `PropertyTransactionPreview` | Selling an independent house in Chennai: 2 of 7 steps done, listing preparation in progress, documents 8/8 ready, visibility private and owner controlled, last update, next step |
+| `/document-assistance` | `DocumentPreview` | A private workspace of 12 documents across the three properties, each with property, date and status; access and last updated; floating renewal card. The "document vault is coming" note stays under it. |
+| `/family-assistance` | `FamilyAssistancePreview` | Parent support in Chennai: a pharmacy pickup being coordinated by the local assistance team, today at 4:30 PM, with activity and a family contact kept informed. Practical help, no medical framing. |
+| `/for-nris` | `NriDashboardPreview` | The whole family office: 03 / 02 / 01, property health for all three properties, recent activity and upcoming dates |
+| `/how-it-works` | `WorkflowPreview` | One inspection request: an 8-stage strip (stage 4, report) and the step timeline with times; floating "your approval is next" |
+| `/trust` | `TrustEvidencePreview` | A complete record for garden maintenance: Who, What, When, Where, Proof, Cost, completed and customer approved |
 
-Built from one small kit in [src/components/preview/preview.tsx](../../src/components/preview/preview.tsx): `ProductPreviewShell` (window, back plate, entrance motion), `PreviewHeader` (icon, title, `DemoLabel`), `PreviewSection`, `PreviewTitle`, `PreviewMetric`, `PreviewStatus`, `PreviewActivity`, `PreviewTimeline`, `PreviewProgress`, `PreviewDivider` and `FloatingCard`. Floating cards only overlap the window's outer edge (never its content) and appear from `lg` up; on phones the preview sits below the CTAs as one compact window. Every window is one image to assistive technology, with a plain-language summary.
+Built from one kit in [src/components/product-preview/](../../src/components/product-preview/), one file per part: `ProductPreviewShell` (window, back plate, entrance motion) and `FloatingCard`, `PreviewHeader`, `PreviewBadge`, `PreviewSection` / `PreviewTitle`, `PreviewDivider`, `PreviewMetric`, `PreviewStatus`, `PreviewRow`, `PreviewAvatar`, `PreviewAction`, `PreviewActivity`, `PreviewTimeline`, `PreviewProgress` / `PreviewStages`. Sample data lives in [src/data/previews.ts](../../src/data/previews.ts), where the content guards check it. All previews reuse the homepage's three fictional properties, so they read as screens of one platform. Floating cards only overlap the window's outer edge (never its content) and appear from `lg` up; on phones the preview sits below the CTAs as one compact window. Every window is one image to assistive technology, with a plain-language summary; nothing inside is focusable or clickable. Motion: the window rises in, activity rows and progress bars follow, and one live status pulses three times — all off with reduced motion.
 
 ## Scroll rhythm
 

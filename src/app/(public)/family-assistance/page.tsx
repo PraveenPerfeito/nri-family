@@ -1,7 +1,7 @@
 import { MessageCircle, ShieldCheck, UserCheck } from "lucide-react";
 import { CtaBand } from "@/components/marketing/cta-band";
 import { PageHero } from "@/components/marketing/page-hero";
-import { LocalAssistancePreview } from "@/components/preview/service-previews";
+import { FamilyAssistancePreview } from "@/components/product-preview/previews/family-assistance-preview";
 import { ScopeNote } from "@/components/marketing/scope-note";
 import { OfferingsGrid, RelatedServices, ServicePageMeta } from "@/components/marketing/service-page";
 import { ButtonLink } from "@/components/ui/button";
@@ -37,7 +37,7 @@ export default function FamilyAssistancePage() {
             Tell Us What You Need
           </ButtonLink>
         }
-        aside={<LocalAssistancePreview />}
+        aside={<FamilyAssistancePreview />}
       />
 
       <Section labelledBy="fa-offerings">

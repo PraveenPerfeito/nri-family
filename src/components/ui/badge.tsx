@@ -90,7 +90,7 @@ export function DemoLabel({ kind = "illustrative", tone = "light", className }: 
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.12em] whitespace-nowrap uppercase",
+        "inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[0.625rem] font-semibold tracking-[0.12em] whitespace-nowrap uppercase max-sm:tracking-[0.08em]",
         tone === "night" ? "border-night-line text-night-muted" : "border-line bg-surface text-ink-subtle",
         className,
       )}

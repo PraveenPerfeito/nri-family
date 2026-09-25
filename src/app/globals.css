@@ -285,6 +285,11 @@
     animation: preview-in var(--duration-reveal) var(--ease-calm) 100ms both;
   }
 
+  /* Progress bars in previews grow in once. */
+  .animate-progress {
+    animation: progress-in 700ms var(--ease-calm) 350ms both;
+  }
+
   .animate-float-in {
     animation: float-in 700ms var(--ease-calm) 400ms both;
   }
@@ -326,6 +331,15 @@
   }
   to {
     opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes progress-in {
+  from {
+    transform: scaleX(0);
+  }
+  to {
     transform: none;
   }
 }
