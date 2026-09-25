@@ -63,6 +63,18 @@ export default function ServicesPage() {
           {services.map((s) => (
             <ServiceCard key={s.slug} service={s} location="services_page" />
           ))}
+          <li className="reveal flex flex-col justify-between rounded-panel border border-dashed border-line-strong p-6 sm:p-8">
+            <div>
+              <p className="text-label text-ink-subtle">Not sure where to start?</p>
+              <p className="text-display mt-4 text-xl">Tell us about your situation.</p>
+              <p className="mt-2 text-[0.9375rem] text-ink-muted">We&apos;ll suggest what makes sense, what it involves and what it costs.</p>
+            </div>
+            <div className="pt-8">
+              <ButtonLink href={routes.getStarted} variant="secondary" arrow track="cta_clicked" trackProps={{ label: "tell_us", location: "services_page" }}>
+                Tell Us What You Need
+              </ButtonLink>
+            </div>
+          </li>
         </ul>
         <ScopeNote className="mt-8">{REGULATED_SERVICES_NOTE}</ScopeNote>
       </Section>

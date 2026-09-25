@@ -1,31 +1,35 @@
 @import "tailwindcss";
 
 /*
- * Design tokens (brand-neutral until branding is confirmed).
- * Every colour, radius, shadow and font used by components is defined here
- * and exposed as a Tailwind utility (e.g. `bg-canvas`, `text-ink-muted`,
- * `rounded-card`, `shadow-card`). See docs/phase-1/design-system.md.
+ * Design tokens — UI V2 ("quiet premium").
+ * Every colour, radius, shadow, font and duration used by components is
+ * defined here and exposed as a Tailwind utility (e.g. `bg-canvas`,
+ * `text-ink-muted`, `rounded-card`, `shadow-float`). The semantic aliases in
+ * :root (--background, --accent, …) name the system; utilities use the
+ * palette names. See docs/phase-1/design-system.md.
  */
 @theme {
-  /* Surfaces */
-  --color-canvas: #f7f6f2;
+  /* Surfaces — warm off-white base, white surfaces, soft grey tints */
+  --color-canvas: #f6f5f1;
   --color-surface: #ffffff;
-  --color-subtle: #efede6;
-  --color-line: #e3e0d7;
-  --color-line-strong: #cbc6b8;
+  --color-surface-elevated: #ffffff;
+  --color-subtle: #eeede7;
+  --color-line: #e3e0d8;
+  --color-line-subtle: #ecebe5;
+  --color-line-strong: #cdc9be;
 
-  /* Text */
+  /* Text — deep navy/charcoal */
   --color-ink: #0e1a2b;
   --color-ink-muted: #45505f;
   --color-ink-subtle: #5d6776;
 
-  /* Brand — deep evergreen */
+  /* Accent — one refined deep teal */
   --color-brand: #0f5a4f;
   --color-brand-strong: #0a443c;
-  --color-brand-soft: #e3efeb;
+  --color-brand-soft: #e2eeea;
   --color-brand-muted: #a8cdc2;
 
-  /* Night surfaces (product previews, feature bands) */
+  /* Night surfaces (feature bands, closing CTA) */
   --color-night: #0b1522;
   --color-night-raised: #121f30;
   --color-night-line: #24344b;
@@ -42,25 +46,55 @@
   --color-info: #1d4aa8;
   --color-info-soft: #e5edfb;
   --color-info-bright: #93b4f5;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecea;
 
-  /* Typography */
+  /* Typography — one modern sans for everything; display = tight Geist */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-newsreader), ui-serif, Georgia, serif;
-  --font-display-italic: var(--font-newsreader-italic), var(--font-newsreader), ui-serif, Georgia, serif;
+  --font-display: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  /* Radius */
+  /* Type scale — body 17px, leads 19px (V2: body 17–19px) */
+  --text-base: 1.0625rem;
+  --text-base--line-height: 1.7;
+  --text-lg: 1.1875rem;
+  --text-lg--line-height: 1.65;
+  --text-xl: 1.375rem;
+  --text-xl--line-height: 1.5;
+
+  /* Radius — 10 / 14 / 20 px */
   --radius-control: 0.625rem;
-  --radius-card: 1rem;
-  --radius-panel: 1.5rem;
+  --radius-card: 0.875rem;
+  --radius-panel: 1.25rem;
 
-  /* Elevation */
-  --shadow-card: 0 1px 2px rgb(14 26 43 / 0.04), 0 4px 16px -6px rgb(14 26 43 / 0.08);
-  --shadow-raised: 0 2px 4px rgb(14 26 43 / 0.05), 0 24px 48px -16px rgb(14 26 43 / 0.22);
-  --shadow-focus: 0 0 0 3px rgb(15 90 79 / 0.35);
+  /* Elevation — restrained; stronger only for floating preview layers */
+  --shadow-card: 0 1px 2px rgb(14 26 43 / 0.04);
+  --shadow-raised: 0 1px 2px rgb(14 26 43 / 0.04), 0 16px 40px -22px rgb(14 26 43 / 0.28);
+  --shadow-float: 0 2px 6px rgb(14 26 43 / 0.05), 0 28px 60px -28px rgb(14 26 43 / 0.38);
+  --shadow-focus: 0 0 0 3px rgb(15 90 79 / 0.3);
 
-  /* Motion */
+  /* Motion — 150 / 200 / 300 / 500 ms */
   --ease-calm: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 150ms;
+  --duration-base: 200ms;
+  --duration-slow: 300ms;
+  --duration-reveal: 500ms;
+}
+
+/* Semantic names for the system (see design-system.md). */
+:root {
+  --background: var(--color-canvas);
+  --surface: var(--color-surface);
+  --surface-elevated: var(--color-surface-elevated);
+  --foreground: var(--color-ink);
+  --muted: var(--color-ink-muted);
+  --border: var(--color-line);
+  --border-subtle: var(--color-line-subtle);
+  --accent: var(--color-brand);
+  --accent-soft: var(--color-brand-soft);
+  --success: var(--color-good);
+  --warning: var(--color-attention);
+  --danger: var(--color-danger);
 }
 
 @layer base {
@@ -68,6 +102,7 @@
     color-scheme: light;
     -webkit-text-size-adjust: 100%;
     scroll-padding-top: 5rem;
+    interpolate-size: allow-keywords;
   }
 
   body {
@@ -110,17 +145,7 @@
   }
 }
 
-/*
- * Display italics use a separately loaded, non-preloaded face (see layout.tsx),
- * so real italics render instead of a slanted roman. Unlayered, so it wins over
- * the text-display utility.
- */
-.text-display.italic,
-.text-display .italic {
-  font-family: var(--font-display-italic);
-}
-
-/* Reusable one-off utilities */
+/* Layout */
 @utility container-page {
   width: 100%;
   max-width: 76rem;
@@ -134,44 +159,139 @@
   }
 }
 
+/* Display headings: tight, confident sans. Size is set where it is used. */
 @utility text-display {
   font-family: var(--font-display);
-  font-weight: 500;
-  letter-spacing: -0.02em;
-  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
 }
 
+/* Small uppercase metadata labels. */
+@utility text-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+/* Faint grid. Safe on any element. */
 @utility bg-grid {
   background-image:
-    linear-gradient(to right, rgb(14 26 43 / 0.045) 1px, transparent 1px),
-    linear-gradient(to bottom, rgb(14 26 43 / 0.045) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(to right, rgb(14 26 43 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(14 26 43 / 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
 }
 
 /*
- * Scroll reveal: progressive enhancement only. Content is fully visible when
- * the browser lacks scroll-driven animations or the user prefers reduced motion.
+ * The same grid fading out towards the edges. The mask applies to the whole
+ * element, so use it only on an empty decorative backdrop layer, never on an
+ * element that contains content.
+ */
+@utility bg-grid-fade {
+  background-image:
+    linear-gradient(to right, rgb(14 26 43 / 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(14 26 43 / 0.04) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 20%, black 30%, transparent 75%);
+}
+
+/* The grid for night surfaces, fading out from the top (backdrop layers only). */
+@utility bg-grid-night {
+  background-image:
+    linear-gradient(to right, rgb(255 255 255 / 0.035) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 25%, transparent 70%);
+}
+
+/* Hero light: barely-there accent glow in one corner. */
+@utility bg-hero-glow {
+  background-image:
+    radial-gradient(52rem 32rem at 88% -8%, rgb(15 90 79 / 0.09), transparent 62%),
+    radial-gradient(36rem 26rem at -8% 42%, rgb(29 74 168 / 0.035), transparent 60%);
+}
+
+/* Site header: translucent; more opaque with a soft edge once the page scrolls. */
+[data-site-header] {
+  transition:
+    background-color var(--duration-slow) var(--ease-calm),
+    box-shadow var(--duration-slow) var(--ease-calm),
+    border-color var(--duration-slow) var(--ease-calm);
+}
+[data-site-header][data-scrolled="true"] {
+  background-color: rgb(246 245 241 / 0.9);
+  border-bottom-color: var(--color-line);
+  box-shadow: 0 10px 30px -24px rgb(14 26 43 / 0.45);
+}
+
+/* FAQ: smooth open/close where supported (progressive enhancement). */
+@media (prefers-reduced-motion: no-preference) {
+  details.faq-item::details-content {
+    block-size: 0;
+    overflow: hidden;
+    transition:
+      block-size var(--duration-slow) var(--ease-calm),
+      content-visibility var(--duration-slow) allow-discrete;
+  }
+  details.faq-item[open]::details-content {
+    block-size: auto;
+  }
+}
+
+/*
+ * Number transition for sample dashboard figures (CSS only). The final value
+ * is always rendered; the count-up runs only when motion is welcome.
+ */
+@property --count {
+  syntax: "<integer>";
+  initial-value: 0;
+  inherits: false;
+}
+.count-up {
+  --count: var(--to);
+  counter-reset: count var(--count);
+}
+.count-up::after {
+  content: counter(count, decimal-leading-zero);
+}
+
+/*
+ * Scroll reveal and entrance motion: progressive enhancement only. Content is
+ * fully visible when scroll-driven animations are unsupported or the visitor
+ * prefers reduced motion.
  */
 @media (prefers-reduced-motion: no-preference) {
   @supports (animation-timeline: view()) {
     .reveal {
       animation: reveal-up linear both;
       animation-timeline: view();
-      animation-range: entry 0% entry 40%;
+      animation-range: entry 0% entry 35%;
     }
   }
 
+  .count-up {
+    animation: count-up 900ms var(--ease-calm) 250ms both;
+  }
+
   .animate-activity > * {
-    animation: activity-in 600ms var(--ease-calm) both;
+    animation: activity-in var(--duration-reveal) var(--ease-calm) both;
   }
   .animate-activity > *:nth-child(2) {
-    animation-delay: 450ms;
+    animation-delay: 350ms;
   }
   .animate-activity > *:nth-child(3) {
-    animation-delay: 900ms;
+    animation-delay: 700ms;
   }
   .animate-activity > *:nth-child(4) {
-    animation-delay: 1350ms;
+    animation-delay: 1050ms;
+  }
+
+  .animate-float-in {
+    animation: float-in 700ms var(--ease-calm) 400ms both;
+  }
+  .animate-float-in-late {
+    animation: float-in 700ms var(--ease-calm) 900ms both;
   }
 
   .animate-pulse-soft {
@@ -182,7 +302,7 @@
 @keyframes reveal-up {
   from {
     opacity: 0;
-    transform: translateY(18px);
+    transform: translateY(16px);
   }
   to {
     opacity: 1;
@@ -198,6 +318,26 @@
   to {
     opacity: 1;
     transform: none;
+  }
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes count-up {
+  from {
+    --count: 0;
+  }
+  to {
+    --count: var(--to);
   }
 }
 

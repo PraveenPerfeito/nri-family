@@ -35,8 +35,8 @@ export function FormAlert({ message }: { message?: string }) {
   return (
     <div role="alert" aria-live="assertive">
       {message ? (
-        <p className="flex items-start gap-2.5 rounded-control border border-attention/25 bg-attention-soft px-4 py-3 text-sm text-ink">
-          <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-attention" />
+        <p className="flex items-start gap-2.5 rounded-control border border-danger/20 bg-danger-soft px-4 py-3 text-sm text-ink">
+          <AlertTriangle aria-hidden className="mt-0.5 size-4 shrink-0 text-danger" />
           {message}
         </p>
       ) : null}

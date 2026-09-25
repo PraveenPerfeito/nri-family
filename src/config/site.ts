@@ -1,31 +1,56 @@
 /**
  * ─── Public site settings: edit these values here ────────────────────────────
  *
- * Everything in this block is public (it appears on the website), so it lives
- * in code rather than in hosting environment variables. Only secrets (the
+ * Everything in this block is public configuration, so it lives in code rather
+ * than in hosting environment variables. Only secrets (RESEND_API_KEY and the
  * optional lead webhook settings, see src/lib/leads/delivery.ts) belong in
- * Vercel's Environment Variables. Empty strings mean "not set" and are not rendered —
- * we never invent legal entity names, addresses or phone numbers.
+ * Vercel's Environment Variables. Empty strings mean "not set" and are not
+ * rendered — we never invent legal entity names, addresses or phone numbers.
  */
 const settings = {
-  /** BRANDING IS NOT CONFIRMED — neutral working name until the brand is chosen. */
-  brandName: "NRI Family Office",
+  brand: {
+    /** Working name. Final brand not selected yet — change it here only. */
+    name: "NRI Family Office",
+    /** Where space is tight (e.g. app titles). Set when the brand is final. */
+    shortName: "NRI Family Office",
+    /** Shown under the name in the logo lock-up. */
+    descriptor: "Tamil Nadu",
+    tagline: "Your trusted team in Tamil Nadu.",
+    promise: "You live abroad. We take care of what you own here.",
+    description:
+      "Property care, inspections, maintenance, documentation assistance and local support for NRIs — managed transparently from one secure platform.",
+    /**
+     * Logo file, e.g. "/brand/logo.svg" in /public. Empty = the placeholder
+     * mark in src/components/layout/logo.tsx.
+     */
+    logo: "",
+    /** Favicon (the src/app/icon.svg file convention). */
+    favicon: "/icon.svg",
+  },
   /**
-   * Final canonical origin, e.g. "https://www.example.com", once a domain is
-   * decided. Leave empty on Vercel: the production domain is detected
-   * automatically (the custom domain once added, else *.vercel.app).
+   * Final canonical origin, e.g. "https://nrifamilyoffice.com". Leave empty on
+   * Vercel: the production domain is detected automatically (the custom domain
+   * once added, else *.vercel.app).
    */
   productionUrl: "",
-  /** Public contact channels, shown in the footer and on /contact. */
-  contactEmail: "praveenperfeitoo@gmail.com",
-  /** Display format with country code; the WhatsApp link is derived from the digits. */
-  contactWhatsapp: "+91 96001 90022",
-  /** Inbox that receives website enquiries (see src/lib/leads/delivery.ts). */
+  /**
+   * PUBLIC business contact channels, shown in the footer and on /contact.
+   * Leave empty until business contact details are decided — never put a
+   * personal email or phone number here (UI V2 privacy rule).
+   * Example: email "hello@nrifamilyoffice.com", whatsapp "+91 …" (a business number).
+   */
+  contactEmail: "",
+  contactWhatsapp: "",
+  contactPhone: "",
+  /**
+   * PRIVATE: inbox that receives website enquiries. Used server-side only
+   * (src/lib/leads/delivery.ts) and never rendered on the site.
+   */
   leadsEmail: "praveenperfeitoo@gmail.com",
   /**
-   * Sender for enquiry emails sent through Resend (used once RESEND_API_KEY is
-   * set in Vercel). Leave empty to use Resend's shared sender until a domain
-   * is verified in Resend, e.g. "Enquiries <enquiries@your-domain.com>".
+   * Sender for enquiry emails sent through Resend. Leave empty to use Resend's
+   * shared sender until a domain is verified in Resend,
+   * e.g. "Enquiries <enquiries@nrifamilyoffice.com>".
    */
   leadsEmailFrom: "",
   /** Legal entity details. Leave empty until they are finalised. */
@@ -58,7 +83,7 @@ export function resolveSiteUrl(configured: string | undefined, vercelProductionD
 }
 
 /**
- * wa.me chat link from an international number such as "+91 96001 90022",
+ * wa.me chat link from an international number such as "+91 98765 43210",
  * optionally with a pre-typed message. Opens the WhatsApp app on phones and
  * WhatsApp Web / Desktop on computers.
  */
@@ -67,28 +92,33 @@ export function whatsappLink(internationalNumber: string, text?: string): string
   return `https://wa.me/${digits}${text ? `?text=${encodeURIComponent(text)}` : ""}`;
 }
 
+const brand = {
+  ...settings.brand,
+  logo: optional(settings.brand.logo),
+};
 const whatsapp = optional(settings.contactWhatsapp);
 
 export const siteConfig = {
-  /** Placeholder brand name until branding is confirmed. */
-  name: settings.brandName,
-  /** Shown under the name in the logo lock-up. */
-  descriptor: "Tamil Nadu",
-  tagline: "Your trusted team in Tamil Nadu.",
-  promise: "You live abroad. We take care of what you own here.",
-  description:
-    "Property care, inspections, maintenance, documentation assistance and local support for NRIs — managed transparently from one secure platform.",
+  /** The brand in one place (siteConfig.brand). Rebrand by editing `settings.brand` above. */
+  brand,
+  /** Shorthands for the brand fields used most often. */
+  name: brand.name,
+  descriptor: brand.descriptor,
+  tagline: brand.tagline,
+  promise: brand.promise,
+  description: brand.description,
   url: resolveSiteUrl(settings.productionUrl, process.env.VERCEL_PROJECT_PRODUCTION_URL),
   locale: "en_IN",
   region: "Tamil Nadu, India",
-  /** Public contact channels. Shown only when set. */
+  /** Public business contact channels. Each is shown only when set. */
   contact: {
     email: optional(settings.contactEmail),
+    phone: optional(settings.contactPhone),
     whatsapp,
     /** Opens a chat with a pre-typed greeting, so replies show they came from the website. */
-    whatsappUrl: whatsapp ? whatsappLink(whatsapp, `Hi, I found you on the ${settings.brandName} website and would like some help.`) : undefined,
+    whatsappUrl: whatsapp ? whatsappLink(whatsapp, `Hi, I found you on the ${brand.name} website and would like some help.`) : undefined,
   },
-  /** Where website enquiries are emailed. */
+  /** PRIVATE — where website enquiries are emailed (server-side only). */
   leadsEmail: optional(settings.leadsEmail),
   /** Sender for Resend-delivered enquiry emails; undefined means Resend's shared sender. */
   leadsEmailFrom: optional(settings.leadsEmailFrom),
@@ -102,7 +132,7 @@ export const siteConfig = {
 };
 
 /** Homepage / default document title, e.g. "NRI Family Office — Your trusted team in Tamil Nadu". */
-export const homeTitle = `${siteConfig.name} — Your trusted team in Tamil Nadu`;
+export const homeTitle = `${brand.name} — Your trusted team in Tamil Nadu`;
 
 export type SiteConfig = typeof siteConfig;
 

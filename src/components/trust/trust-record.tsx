@@ -1,5 +1,4 @@
 import { Camera, Clock, MapPin, Receipt, UserRound, Wrench } from "lucide-react";
-import { FeatureCard } from "@/components/ui/card";
 
 const record = [
   { key: "Who", icon: UserRound, body: "The assigned person or partner who handled the work." },
@@ -10,21 +9,19 @@ const record = [
   { key: "Cost", icon: Receipt, body: "Quotation, your approval, and the final invoice." },
 ];
 
-/** The six questions every service record should answer. */
+/** The six questions every service record answers — a quiet hairline grid. */
 export function TrustRecord() {
   return (
-    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {record.map((r) => (
-        <FeatureCard
-          key={r.key}
-          icon={r.icon}
-          compact
-          className="reveal"
-          title={<span className="text-xs font-semibold tracking-[0.16em] text-brand uppercase">{r.key}</span>}
-        >
-          <p className="text-base text-ink">{r.body}</p>
-        </FeatureCard>
+    <dl className="grid gap-px overflow-hidden rounded-panel border border-line bg-line sm:grid-cols-2 lg:grid-cols-3">
+      {record.map(({ key, icon: Icon, body }) => (
+        <div key={key} className="bg-surface p-5 sm:p-7">
+          <dt className="text-label flex items-center gap-2 text-brand">
+            <Icon aria-hidden className="size-3.5" strokeWidth={2} />
+            {key}
+          </dt>
+          <dd className="mt-2 text-[0.9375rem] text-ink sm:mt-2.5 sm:text-base">{body}</dd>
+        </div>
       ))}
-    </ul>
+    </dl>
   );
 }

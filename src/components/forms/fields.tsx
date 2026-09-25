@@ -3,12 +3,12 @@ import { AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 export const controlClasses =
-  "block w-full rounded-control border border-line-strong bg-surface px-3.5 py-2.5 text-base text-ink shadow-xs placeholder:text-ink-subtle/80 transition-colors hover:border-ink/30 focus:border-brand focus:outline-none focus-visible:shadow-focus focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-ink-subtle aria-invalid:border-attention sm:text-sm";
+  "block w-full rounded-control border border-line-strong bg-surface px-3.5 py-2.5 text-base text-ink shadow-xs placeholder:text-ink-subtle/80 transition-colors hover:border-ink/30 focus:border-brand focus:outline-none focus-visible:shadow-focus focus-visible:outline-none disabled:cursor-not-allowed disabled:bg-subtle disabled:text-ink-subtle aria-invalid:border-danger sm:text-sm";
 
 export function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null;
   return (
-    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-sm text-attention">
+    <p id={id} className="mt-1.5 flex items-start gap-1.5 text-sm text-danger">
       <AlertCircle aria-hidden className="mt-0.5 size-4 shrink-0" />
       {message}
     </p>
@@ -101,7 +101,7 @@ export function ChoiceGroup({
               htmlFor={id}
               className={cn(
                 "flex min-h-11 cursor-pointer items-center gap-2.5 rounded-control border bg-surface px-3 py-2 text-sm text-ink transition-colors hover:border-ink/30 has-[:checked]:border-brand has-[:checked]:bg-brand-soft has-[:focus-visible]:shadow-focus",
-                error ? "border-attention/60" : "border-line-strong",
+                error ? "border-danger/60" : "border-line-strong",
               )}
             >
               <input id={id} type={type} name={name} value={o.value} className="size-4 shrink-0 accent-brand focus:outline-none" />

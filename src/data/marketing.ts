@@ -1,13 +1,5 @@
 import type { Availability } from "@/types/domain";
 
-export const howItWorksSteps = [
-  { title: "Create your account", body: "Tell us about yourself and what you need help with." },
-  { title: "Add your property or request", body: "Securely share the relevant details — a property, a plot of land, or a task." },
-  { title: "We coordinate locally", body: "Our operations team assigns the right person or partner for the job." },
-  { title: "You approve when needed", body: "Quotations and important actions come to you for approval before anything proceeds." },
-  { title: "Receive proof and updates", body: "Photos, videos, reports and invoices are shared with you, and will live in your private workspace." },
-];
-
 export const serviceRecordFlow = ["Request", "Assigned", "Inspected", "Approved", "Completed", "Proof", "Invoice"];
 
 /**
@@ -28,3 +20,13 @@ export const roadmap: { label: string; availability: Availability }[] = [
   { label: "Family member access with permissions", availability: "coming" },
   { label: "Verified buyer and partner network", availability: "coming" },
 ];
+
+/** Home "How it works" journey (UI V2): six stages, each with a small visual. */
+export const journeyStages = [
+  { key: "account", title: "Create your account", body: "Tell us about yourself and what you need help with." },
+  { key: "property", title: "Add your property", body: "Add your property or request, and securely share the relevant details." },
+  { key: "request", title: "Request a service", body: "An inspection, a repair, a document task or help for family." },
+  { key: "local", title: "Local execution", body: "We coordinate locally: our operations team assigns the right person or partner." },
+  { key: "approval", title: "Approval", body: "You approve when needed. Quotes and important actions come to you first." },
+  { key: "proof", title: "Proof and report", body: "Receive proof and updates: photos, videos, reports and invoices." },
+] as const;

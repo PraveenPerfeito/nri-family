@@ -50,7 +50,7 @@ These need confirmation from the business. Each is easy to change.
 
 | Assumption | Where to change it |
 | --- | --- |
-| **Branding is not confirmed.** The site uses the neutral working name **"NRI Family Office"** (from the spec footer) and a placeholder mark. No brand story is told. | `brandName` in the settings block of [src/config/site.ts](../../src/config/site.ts); mark in [logo.tsx](../../src/components/layout/logo.tsx), [icon.svg](../../src/app/icon.svg), [opengraph-image.tsx](../../src/app/opengraph-image.tsx) |
+| **Branding is not confirmed.** The site uses the neutral working name **"NRI Family Office"** (from the spec footer) and a placeholder mark. No brand story is told. | `brand` in the settings block of [src/config/site.ts](../../src/config/site.ts) (`siteConfig.brand`); mark in [logo.tsx](../../src/components/layout/logo.tsx), [icon.svg](../../src/app/icon.svg), [opengraph-image.tsx](../../src/app/opengraph-image.tsx) |
 | No final domain yet. The site runs at `https://nri-family.vercel.app`; canonical URLs use Vercel's production domain automatically. | `productionUrl` in site.ts (optional; Vercel is detected automatically) |
 | Contact email and WhatsApp are set (shown in the footer and on /contact). No legal entity yet, so it's hidden. | `contactEmail`, `contactWhatsapp`, `companyLegalName`, `companyAddress` in site.ts |
 | Search engines are kept out until launch (the brand is unconfirmed) | `allowSearchIndexing` in site.ts |
@@ -69,7 +69,7 @@ These need confirmation from the business. Each is easy to change.
 
 ## Before general launch
 
-- [ ] Confirm the brand name and domain; update `brandName` and `productionUrl` in site.ts, and add the domain in Vercel
+- [ ] Confirm the brand name and domain; update `brand` and `productionUrl` in site.ts, and add the domain in Vercel
 - [ ] Replace the placeholder logo mark (logo.tsx, app/icon.svg, opengraph-image.tsx) and, if wanted, adjust brand colours in globals.css
 - [ ] Remove the `uraavu` pattern from the brand guard in tests/content-guards.test.ts only if that name is chosen
 - [ ] Confirm the contact email and WhatsApp in site.ts are the ones customers should use

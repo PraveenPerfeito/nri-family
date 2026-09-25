@@ -21,7 +21,7 @@ export type ButtonSize = "md" | "lg";
 type Tone = "light" | "night";
 
 const base =
-  "inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center gap-2 font-medium tracking-tight whitespace-nowrap transition-[color,background-color,border-color,box-shadow,transform] duration-200 ease-[var(--ease-calm)] disabled:cursor-not-allowed disabled:opacity-60";
 
 const sizes: Record<ButtonSize, string> = {
   md: "h-10 px-4 text-sm rounded-control",
@@ -30,13 +30,13 @@ const sizes: Record<ButtonSize, string> = {
 
 const variants: Record<Tone, Record<ButtonVariant, string>> = {
   light: {
-    primary: "bg-brand text-white hover:bg-brand-strong shadow-sm",
-    secondary: "bg-surface text-ink border border-line-strong hover:border-ink/40 hover:bg-subtle",
+    primary: "bg-brand text-white shadow-[inset_0_1px_0_rgb(255_255_255/0.12),0_1px_2px_rgb(14_26_43/0.12)] hover:bg-brand-strong hover:-translate-y-px hover:shadow-raised",
+    secondary: "bg-surface text-ink border border-line-strong hover:border-ink/35 hover:-translate-y-px hover:shadow-card",
     quiet: "text-ink-muted hover:text-ink hover:bg-subtle",
     ghost: "text-brand hover:text-brand-strong underline-offset-4 hover:underline px-0 h-auto",
   },
   night: {
-    primary: "bg-white text-night hover:bg-brand-soft",
+    primary: "bg-white text-night hover:bg-brand-soft hover:-translate-y-px",
     secondary: "border border-night-line text-night-text hover:border-night-muted hover:bg-night-raised",
     quiet: "text-night-muted hover:text-white hover:bg-night-raised",
     ghost: "text-brand-muted hover:text-white underline-offset-4 hover:underline px-0 h-auto",

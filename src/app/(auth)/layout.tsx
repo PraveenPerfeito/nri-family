@@ -22,7 +22,8 @@ export default function AuthLayout({ children }: LayoutProps<"/">) {
           </Link>
         </div>
       </header>
-      <main id="main" tabIndex={-1} className="bg-grid flex flex-1 items-start justify-center px-4 py-12 sm:py-16">
+      <main id="main" tabIndex={-1} className="relative isolate flex flex-1 items-start justify-center px-4 py-12 sm:py-16">
+        <div aria-hidden className="bg-grid-fade pointer-events-none absolute inset-0 -z-10" />
         {children}
       </main>
       <footer className="border-t border-line py-6 text-center text-xs text-ink-subtle">

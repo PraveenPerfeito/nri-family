@@ -22,11 +22,15 @@ const next = [
 
 export default function GetStartedPage() {
   return (
-    <div className="bg-grid border-b border-line">
-      <div className="container-page grid gap-12 py-14 sm:py-16 lg:grid-cols-[1fr_1.5fr] lg:gap-16 lg:py-20">
+    <div className="relative isolate border-b border-line-subtle">
+      <div aria-hidden className="pointer-events-none absolute inset-0 -z-10">
+        <div className="bg-hero-glow absolute inset-0" />
+        <div className="bg-grid-fade absolute inset-0 opacity-60" />
+      </div>
+      <div className="container-page grid gap-12 py-14 sm:py-16 lg:grid-cols-[1fr_1.5fr] lg:gap-16 lg:py-24">
         <div className="lg:sticky lg:top-24 lg:self-start">
           <Eyebrow>Get Started</Eyebrow>
-          <h1 className="text-display mt-4 text-4xl text-ink sm:text-5xl">Tell us what you need help with.</h1>
+          <h1 className="text-display mt-6 text-[2.5rem] tracking-[-0.04em] text-ink sm:text-5xl">Tell us what you need help with.</h1>
           <p className="mt-5 text-lg leading-relaxed text-ink-muted">
             A few details help us understand your situation. It takes about two minutes, and there&apos;s no obligation.
           </p>

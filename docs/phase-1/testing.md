@@ -36,7 +36,9 @@ BASE_URL=https://nri-family.vercel.app QA_READONLY=true QA_BROWSER=msedge npm ru
 | `seo-and-routes.test.ts` | Every route has a page; every nav/footer/service link resolves; sitemap completeness; no future-layer placeholders; metadata helper output |
 | `content-guards.test.ts` | Fails if a brand name is hard-coded instead of read from config (branding not confirmed); fails on unsupported claims (ISO/SOC 2/GDPR certification, "bank-grade", "guaranteed", "No.1", customer counts, awards, hype, testimonials); sample data has no emails, phone numbers or street addresses; secrets are never exposed through `NEXT_PUBLIC_` |
 
-Result at the end of Phase 1: **110 tests passing**.
+Result at the end of Phase 1: **110 tests passing** (unchanged after UI V2).
+
+> **Windows:** run the tests from a terminal whose path starts with an uppercase drive letter (`C:\Uraavu.com`). When the working directory is spelled `c:\Uraavu.com`, Vitest reports "failed to find the runner" and runs no tests. The code is not at fault.
 
 ## Browser QA (`scripts/qa.mjs`)
 
@@ -75,6 +77,8 @@ For **every route**:
 
 **Against the live site** (https://nri-family.vercel.app, read-only mode, 2026-09-25): Edge, Firefox and WebKit each pass **433 checks, 0 failures**. The two real form submissions are skipped in read-only mode; they were verified live separately, and FormSubmit confirmed delivery. A separate content audit of the live pages found **all 333 items the Phase 1 prompt requires**.
 
+**After UI V2** (local production build, 2026-09-25): Edge, Firefox and WebKit each pass **435 checks, 0 failures**, and axe finds 0 violations on all 19 pages. See [ui-v2.md](ui-v2.md#qa-record-local-production-build-2026-09-25).
+
 Under WebKit, Tab-order checks are replaced by focusing the skip link directly: like Safari's default setting, WebKit does not Tab to links. Aborted RSC prefetch requests are also ignored under WebKit; they are cancelled by the test's own navigation and reported as "access control" errors.
 
 ## Bugs the gate caught during Phase 1
@@ -107,7 +111,7 @@ Page weight:
 
 - Every route is static HTML. There are no images; all visuals are HTML/CSS.
 - About 121 KB of the JavaScript is the React/Next.js runtime; the site's own code is about 13 KB (plus about 5 KB for the form on `/get-started`). A 38.7 KB polyfill chunk is `nomodule`, so modern browsers never download it.
-- **Fonts:** only the faces the first screen needs are preloaded: Geist (sans) and Newsreader roman at weight 500 (23 KB). The italic face is fetched on demand. This took mobile LCP from 2.9 s to 2.2–2.3 s. Earlier steps: an unused Geist Mono was removed (4 files, 171 KB, down to 3 files, 148 KB), then the italic and variable faces were dropped from preload (3 files, 148 KB, down to 2 files, 51 KB).
+- **Fonts:** only the faces the first screen needs are preloaded. In Phase 1 that was Geist (sans) and Newsreader roman at weight 500 (23 KB), which took mobile LCP from 2.9 s to 2.2–2.3 s. UI V2 removed Newsreader entirely, so only Geist is loaded.
 - **Measured and rejected:** Next.js's experimental `inlineCss` made LCP worse in local Lighthouse runs (2.8 s, against 2.6–2.7 s without it), so it is not used.
 
 ## Device, screen-reader, WhatsApp and email checks (live site, 2026-09-25)

@@ -5,41 +5,6 @@
  */
 import type { HealthStatus, PropertyKind, PropertyVisibility } from "@/types/domain";
 
-export type DemoProperty = {
-  id: string;
-  name: string;
-  city: string;
-  kind: PropertyKind;
-  status: HealthStatus;
-  healthScore: number;
-};
-
-export const demoProperties: DemoProperty[] = [
-  { id: "p1", name: "Chennai House", city: "Chennai", kind: "independent-house", status: "good", healthScore: 92 },
-  { id: "p2", name: "Chengalpattu Land", city: "Chengalpattu", kind: "residential-land", status: "good", healthScore: 96 },
-  { id: "p3", name: "Coimbatore Apartment", city: "Coimbatore", kind: "apartment", status: "attention", healthScore: 88 },
-];
-
-export type DemoActivity = { id: string; label: string; state: "done" | "pending" | "scheduled"; when: string };
-
-export const heroActivity: DemoActivity[] = [
-  { id: "a1", label: "Property inspection completed", state: "done", when: "Chennai House · 2 days ago" },
-  { id: "a2", label: "Maintenance completed", state: "done", when: "Coimbatore Apartment · 5 days ago" },
-  { id: "a3", label: "Approval required", state: "pending", when: "Garden maintenance quote" },
-];
-
-export const workspaceActivity: DemoActivity[] = [
-  { id: "w1", label: "Chennai property inspection", state: "done", when: "Report and 18 photos shared" },
-  { id: "w2", label: "Plumbing repair completed", state: "done", when: "Invoice attached" },
-  { id: "w3", label: "Land inspection scheduled", state: "scheduled", when: "Chengalpattu Land" },
-];
-
-export const workspaceStats = [
-  { label: "Properties", value: 3 },
-  { label: "Open requests", value: 2 },
-  { label: "Approval required", value: 1 },
-];
-
 export type ReportRow = { area: string; status: HealthStatus; note?: string };
 
 export const demoInspectionReport = {
@@ -109,4 +74,92 @@ export const demoListings: DemoListing[] = [
     intent: "Sale",
     visibility: "private",
   },
+];
+
+/* ── UI V2 samples ─────────────────────────────────────────────────────────── */
+
+export type SampleHealth = { id: string; name: string; status: HealthStatus; label: string; score: number };
+export type SampleActivity = { id: string; label: string; detail: string; time: string; state: "done" | "pending" | "scheduled" };
+
+/** Hero "command center": a concept preview of the private workspace. */
+export const commandCenter = {
+  greeting: "Good morning, Arjun",
+  when: "Wednesday · 09:42 IST",
+  stats: [
+    { label: "Properties", value: 3, attention: false },
+    { label: "Requests", value: 2, attention: false },
+    { label: "Approval", value: 1, attention: true },
+  ],
+  health: [
+    { id: "h1", name: "Chennai House", status: "good", label: "Good", score: 92 },
+    { id: "h2", name: "Chengalpattu Land", status: "good", label: "Good", score: 96 },
+    { id: "h3", name: "Coimbatore Apartment", status: "attention", label: "Review", score: 88 },
+  ] satisfies SampleHealth[],
+  /** Average property health over the last six months. */
+  trend: [82, 85, 84, 88, 90, 92],
+  activity: [
+    { id: "a1", label: "Inspection completed", detail: "Chennai House · 18 photos", time: "09:40", state: "done" },
+    { id: "a2", label: "Maintenance completed", detail: "Coimbatore Apartment", time: "Tue", state: "done" },
+    { id: "a3", label: "Approval required", detail: "Garden maintenance · ₹8,500", time: "Now", state: "pending" },
+  ] satisfies SampleActivity[],
+  /** Approximate positions on a Tamil Nadu grid (percent of the mini map). */
+  pins: [
+    { name: "Chennai", x: 82, y: 20 },
+    { name: "Chengalpattu", x: 72, y: 40 },
+    { name: "Coimbatore", x: 18, y: 68 },
+  ],
+};
+
+export const sampleApproval = {
+  title: "Garden maintenance",
+  property: "Chennai House",
+  amount: "₹8,500",
+  by: "Verified local gardener",
+  lines: [
+    { label: "Hedge trimming and clearing", amount: "₹6,000" },
+    { label: "Green waste removal", amount: "₹2,500" },
+  ],
+};
+
+/** Dashboard section: a fuller concept of the private workspace overview. */
+export const workspaceOverview = {
+  health: [
+    { id: "h1", name: "Chennai House", status: "good", label: "Good", score: 92, detail: "Inspected today" },
+    { id: "h2", name: "Chengalpattu Land", status: "good", label: "Good", score: 96, detail: "Boundary checked 14 Sep" },
+    { id: "h3", name: "Coimbatore Apartment", status: "attention", label: "Review", score: 88, detail: "Tenant request open" },
+  ] satisfies (SampleHealth & { detail: string })[],
+  timeline: [
+    { id: "t1", time: "09:40", label: "Chennai property inspection", detail: "Report and 18 photos shared", state: "done" },
+    { id: "t2", time: "09:12", label: "Quote received", detail: "Garden maintenance · ₹8,500", state: "pending" },
+    { id: "t3", time: "Yesterday", label: "Plumbing repair completed", detail: "Coimbatore Apartment · invoice attached", state: "done" },
+    { id: "t4", time: "Mon", label: "Land inspection scheduled", detail: "Chengalpattu Land · 12 Oct", state: "scheduled" },
+  ] satisfies SampleActivity[],
+  upcoming: [
+    { id: "u0", label: "Rent due", detail: "Coimbatore Apartment", when: "5 Oct" },
+    { id: "u1", label: "Land inspection", detail: "Chengalpattu Land", when: "12 Oct" },
+    { id: "u2", label: "Property tax reminder", detail: "Chennai House", when: "30 Oct" },
+  ],
+};
+
+export type EvidenceStep = { time: string; title: string; detail: string; state: "done" | "current" };
+
+/** One sample service record, from request to invoice. */
+export const evidenceTimeline: EvidenceStep[] = [
+  { time: "Mon 09:42", title: "Request received", detail: "Leak reported under the kitchen sink at Chennai House.", state: "done" },
+  { time: "Mon 10:15", title: "Local team assigned", detail: "A verified plumber is scheduled. You see who is going, and when.", state: "done" },
+  { time: "Mon 11:40", title: "Property inspected", detail: "Cause found: a worn pipe joint. 18 photos taken on site.", state: "done" },
+  { time: "Mon 12:20", title: "Report and photos shared", detail: "Findings, photos and a quotation of ₹2,400.", state: "done" },
+  { time: "Mon 13:05", title: "Approved by you", detail: "You approve the quotation from abroad. Nothing starts before this.", state: "done" },
+  { time: "Tue 16:10", title: "Work completed", detail: "Joint replaced and tested for leaks.", state: "done" },
+  { time: "Tue 16:25", title: "Proof uploaded", detail: "Before-and-after photos and a short video.", state: "done" },
+  { time: "Tue 16:30", title: "Invoice shared", detail: "Itemised, and matching the approved quotation.", state: "current" },
+];
+
+/** Great-circle distance to Chennai, rounded (computed from city coordinates). */
+export const distancesToChennai = [
+  { city: "Dubai", km: "2,900" },
+  { city: "Singapore", km: "2,900" },
+  { city: "London", km: "8,200" },
+  { city: "Sydney", km: "9,100" },
+  { city: "Toronto", km: "13,400" },
 ];

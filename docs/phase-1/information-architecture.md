@@ -28,26 +28,29 @@
 
 **Mobile header (below 1024px):** Logo · **Get Started** · menu button. Login joins the header from 640px up and is always inside the menu. The menu is a native `<dialog>`: focus is trapped, Escape and backdrop clicks close it, focus returns to the menu button, and it closes on navigation.
 
-**Footer:** Company · Services · For NRIs · Trust · Platform, plus the tagline, optional contact details and a scope disclaimer ("We coordinate… we do not provide legal, tax, medical or other regulated professional services").
+**Footer (UI V2):** Company · Services · Trust & legal · Platform, plus the tagline, optional contact details and a scope disclaimer ("We coordinate… we do not provide legal, tax, medical or other regulated professional services").
 
 All links come from [src/config/navigation.ts](../../src/config/navigation.ts), which uses typed routes from [src/config/routes.ts](../../src/config/routes.ts). A unit test fails if any link points at a route without a page.
 
 ## Homepage section order
 
+UI V2 order (compositions and surfaces in [ui-v2.md](ui-v2.md#scroll-rhythm)):
+
 | # | Section | Job |
 | --- | --- | --- |
-| 1 | Hero + "My Family Office" preview | What, who, primary CTA |
-| 2 | Problem: "Thousands of miles away…" | Recognition: who checks, handles, follows up |
-| 3 | Solution: five pillars | Property, assets, documents, family, local services |
-| 4 | Services: five categories | Depth, with a link to each service page |
-| 5 | Trust: who/what/when/where/proof/cost + request chain | Why trust us |
-| 6 | Privacy: four principles | Private by design |
-| 7 | Vision: ecosystem + Available now vs Coming | The family-office idea, stated honestly |
-| 8 | How it works: five steps | Process |
-| 9 | Workspace preview | What the private workspace will look like |
-| 10 | Sell/rent: three visibility levels | Transactions with control |
-| 11 | FAQ (first six) | Objection handling |
-| 12 | Closing CTA band | Convert |
+| 1 | Hero + "My Family Office" command center | What, who, primary CTA |
+| 2 | Trust strip | Private by default · Local execution · Visible proof · Customer approval |
+| 3 | Problem: "Thousands of miles away…" | Recognition: who checks, handles, follows up |
+| 4 | Solution: radial ecosystem | Property, assets, documents, family, local services |
+| 5 | Services: flagship, primary, secondary | Depth, with a link to each service page |
+| 6 | Trust: timestamped service record, sample report, six questions | Why trust us |
+| 7 | Privacy: principles + access-control diagram | Private by design |
+| 8 | Digital family office + Available today vs Coming | The family-office idea, stated honestly |
+| 9 | Dashboard preview | What the private workspace will look like |
+| 10 | Sell/rent: visibility ladder + sample listing | Transactions with control |
+| 11 | How it works: six stages | Process |
+| 12 | FAQ (first six) | Objection handling |
+| 13 | Closing CTA | Convert |
 
 ## Page templates
 
