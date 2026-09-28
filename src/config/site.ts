@@ -68,8 +68,8 @@ const settings = {
    * Never put the secret / service-role key here or in any env var the app
    * reads — the app does not need it. See docs/PHASE_2A.md.
    */
-  supabaseUrl: "",
-  supabasePublishableKey: "",
+  supabaseUrl: "https://epqwcpckltrnhzmegtyq.supabase.co",
+  supabasePublishableKey: "sb_publishable_LHuxbVil-OG5eX7aQZFjdA_E9vMSOyN",
   /**
    * Anyone can create a customer account. Keep false (sign-in only, for
    * accounts the team creates) until auth emails go out from our own domain

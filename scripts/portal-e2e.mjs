@@ -178,9 +178,9 @@ try {
       check(!error, `could not generate a confirmation link: ${error?.message}`);
       await page.goto(`${BASE}/auth/confirm?token_hash=${data.properties.hashed_token}&type=signup&next=%2Fapp`);
       await page.waitForURL(`${BASE}/app`, { timeout: 20_000 });
-    } else if (/can't send email|different email address/.test(outcome)) {
-      // The form reached Supabase, but the project can't email test addresses yet (its built-in
-      // email only reaches your own team). Create the same account through the admin API and
+    } else if (/can't send email|different email address|too many requests/.test(outcome)) {
+      // The form reached Supabase, but the project won't email the test address (its built-in
+      // email only reaches your own team, a few times an hour). Create the same account through the admin API and
       // confirm it with a real email link, so the rest of the journey still runs.
       console.log(`      note: Supabase refused to email the test address ("${outcome.replace(/^error: /, "")}"); confirming the account through an admin-generated link instead.`);
       const { data, error } = await admin.auth.admin.generateLink({

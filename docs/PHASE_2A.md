@@ -2,7 +2,7 @@
 
 The private workspace where an NRI customer signs in, adds their Tamil Nadu properties, requests services and follows every step. This is the foundation only. There is no admin, vendor or partner portal yet (see [What is not built](#what-is-not-built-in-phase-2a)).
 
-**Status.** Built and tested. The portal has run end to end in Edge, Firefox and WebKit against a local stand-in for Supabase (real database, emulated Auth/REST; see [Testing](#testing)). The live site does not use the portal yet: `supabaseUrl` and `supabasePublishableKey` in [src/config/site.ts](../src/config/site.ts) are empty. Until they are set, `/app` redirects to `/login`, which says accounts are coming. To go live, follow [Connecting a Supabase project](#connecting-a-supabase-project), then run the [acceptance test](#acceptance-test) against the real project.
+**Status (28 Sept 2026).** Live and verified. The migration is applied to the Supabase project `epqwcpckltrnhzmegtyq`, and the site is connected to it in [src/config/site.ts](../src/config/site.ts) (the project URL and publishable key; both are public by design). The [acceptance test](#acceptance-test) passed 22/22 against that real project in Edge, Firefox and WebKit. Public sign-up stays closed (`customerSignupsOpen: false`) until auth emails go out from our own domain: add customers in Supabase under **Authentication → Users → Add user**, and they sign in at `/login`.
 
 ## What was built
 
@@ -233,7 +233,7 @@ npm run qa:portal                    # acceptance test in another terminal (read
 
 - Against the local stand-in: **22/22 steps pass in Edge, Firefox and WebKit**, with email confirmation on and off.
 - Portal visual and accessibility QA: 930 checks, **0 failures**. It covered every portal page (populated and empty workspaces, signed out, not found) at 375, 390, 430, 768, 1024, 1280 and 1440px, checking overflow, console errors, one `<h1>`, labelled controls, and axe (WCAG 2.2 AA + best practice).
-- **Against a real Supabase project: not yet run.** It needs the project from [Connecting a Supabase project](#connecting-a-supabase-project). Run it before real customers use the portal.
+- **Against the real Supabase project: 22/22 in Edge, Firefox and WebKit.** Supabase refused to email the test addresses (its built-in email only reaches the team, and it rejects `example.net`), so step 1 confirmed those accounts through admin-generated links, as designed.
 
 ## Environment variables
 
