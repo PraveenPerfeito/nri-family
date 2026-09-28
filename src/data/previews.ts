@@ -83,14 +83,15 @@ export const transactionPreview = {
 
 /* Document Assistance */
 export const documentPreview = {
+  property: "Chennai House",
   count: 12,
   lastUpdated: "24 Sep 2026",
   documents: [
-    { name: "Property tax receipt", property: "Chennai House", date: "Apr 2026", status: "Current", tone: "good" },
-    { name: "Rental agreement", property: "Coimbatore Apartment", date: "Renews 15 Oct", status: "Renewal due", tone: "attention" },
-    { name: "Sale deed (copy)", property: "Chengalpattu Land", date: "Added Jan 2026", status: "Available", tone: "good" },
-    { name: "Home insurance", property: "Chennai House", date: "Nov 2026", status: "Review due", tone: "info" },
-  ] satisfies { name: string; property: string; date: string; status: string; tone: PreviewTone }[],
+    { name: "Property tax receipt", type: "Tax", date: "Paid Apr 2026", status: "Current", tone: "good" },
+    { name: "Rental agreement", type: "Agreement", date: "Renews 15 Oct", status: "Renewal due", tone: "attention" },
+    { name: "Sale deed (copy)", type: "Ownership", date: "Added Jan 2026", status: "Available", tone: "good" },
+    { name: "Insurance", type: "Policy", date: "Due Nov 2026", status: "Review due", tone: "info" },
+  ] satisfies { name: string; type: string; date: string; status: string; tone: PreviewTone }[],
 };
 
 /* Family Assistance */

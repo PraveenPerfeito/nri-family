@@ -39,7 +39,14 @@ export function PageHero({
       >
         <div className="max-w-3xl">
           {eyebrow ? <Eyebrow>{eyebrow}</Eyebrow> : null}
-          <h1 className="text-display mt-6 text-[2.5rem] tracking-[-0.04em] text-ink sm:text-[3.25rem] lg:text-[4rem]">{title}</h1>
+          <h1
+            className={cn(
+              "text-display mt-6 text-[2.5rem] tracking-[-0.04em] text-ink sm:text-[3.25rem]",
+              aside ? "lg:text-[3.25rem] xl:text-[4rem]" : "lg:text-[4rem]",
+            )}
+          >
+            {title}
+          </h1>
           {lead ? <div className="mt-6 max-w-2xl text-lg text-ink-muted sm:text-xl">{lead}</div> : null}
           {actions ? <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:flex-wrap">{actions}</div> : null}
         </div>

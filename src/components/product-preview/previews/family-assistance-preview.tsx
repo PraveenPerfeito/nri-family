@@ -1,13 +1,24 @@
-import { CalendarClock, HeartHandshake, UserRound, Users } from "lucide-react";
+import { CalendarClock, Camera, HeartHandshake, UserRound, Users } from "lucide-react";
 import { assistancePreview as d } from "@/data/previews";
-import { PreviewActivity, PreviewAvatar, PreviewDivider, PreviewHeader, PreviewRow, PreviewSection, PreviewStatus, PreviewTitle, ProductPreviewShell } from "..";
+import {
+  PreviewActivity,
+  PreviewAvatar,
+  PreviewDivider,
+  PreviewEmptyState,
+  PreviewHeader,
+  PreviewRow,
+  PreviewSection,
+  PreviewStatus,
+  PreviewTitle,
+  ProductPreviewShell,
+} from "..";
 
 /** Family Assistance: trusted local help for family, coordinated from abroad (practical support, not healthcare). */
 export function FamilyAssistancePreview() {
   return (
     <ProductPreviewShell
       label="Concept preview: local assistance request"
-      summary={`Concept preview with sample data. ${d.category} in ${d.city}: a ${d.request.toLowerCase()}, status ${d.status.toLowerCase()}, assigned to the ${d.assignedTo.toLowerCase()}, scheduled ${d.schedule}. Activity: request received, local team assigned, visit in progress, completion proof to follow. Updates also go to a ${d.contact.toLowerCase()}.`}
+      summary={`Concept preview with sample data. ${d.category} in ${d.city}: a ${d.request.toLowerCase()}, status ${d.status.toLowerCase()}, assigned to the ${d.assignedTo.toLowerCase()}, scheduled ${d.schedule}. Activity: request received, local team assigned, visit in progress; photos and a short completion update will appear after the visit. Updates also go to a ${d.contact.toLowerCase()}.`}
     >
       <PreviewHeader icon={HeartHandshake} title="Family assistance" />
 
@@ -32,6 +43,9 @@ export function FamilyAssistancePreview() {
       <PreviewDivider />
       <PreviewSection label="Recent activity">
         <PreviewActivity items={d.activity} />
+        <div className="mt-4">
+          <PreviewEmptyState icon={Camera} title="No photos yet" body="Photos and a short update appear here after the visit." />
+        </div>
       </PreviewSection>
 
       <PreviewDivider />

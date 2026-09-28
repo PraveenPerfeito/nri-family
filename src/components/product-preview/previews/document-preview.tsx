@@ -1,4 +1,4 @@
-import { FileText, FolderLock, Lock } from "lucide-react";
+import { FileText, FolderLock, House, Lock } from "lucide-react";
 import { documentPreview as d } from "@/data/previews";
 import { FloatingCard, PreviewAction, PreviewDivider, PreviewHeader, PreviewRow, PreviewSection, PreviewStatus, PreviewTitle, ProductPreviewShell } from "..";
 
@@ -8,8 +8,8 @@ export function DocumentPreview() {
   return (
     <ProductPreviewShell
       label="Concept preview: document workspace"
-      summary={`Concept preview with sample data. A private document workspace with ${d.count} documents across three properties. ${d.documents
-        .map((doc) => `${doc.name} for ${doc.property}: ${doc.status.toLowerCase()}`)
+      summary={`Concept preview with sample data. A private document workspace for ${d.property} with ${d.count} documents. ${d.documents
+        .map((doc) => `${doc.name}: ${doc.status.toLowerCase()}, ${doc.date.toLowerCase()}`)
         .join("; ")}. Access: private, the owner and authorised team only. Last updated ${d.lastUpdated}.`}
       floating={
         due ? (
@@ -20,7 +20,7 @@ export function DocumentPreview() {
             </p>
             <p className="mt-1.5 text-sm font-semibold text-ink">{due.name}</p>
             <p className="text-[0.6875rem] text-ink-subtle">
-              {due.property} · {due.date}
+              {d.property} · {due.date}
             </p>
           </FloatingCard>
         ) : null
@@ -30,7 +30,7 @@ export function DocumentPreview() {
 
       <PreviewSection>
         <PreviewTitle
-          eyebrow="Private workspace"
+          eyebrow="Documents"
           title={`${d.count} documents`}
           aside={
             <span className="text-label inline-flex items-center gap-1.5 rounded-full border border-line bg-surface px-2.5 py-1 text-ink">
@@ -53,7 +53,7 @@ export function DocumentPreview() {
                   </span>
                 </span>
                 <span className="block truncate text-[0.6875rem] text-ink-subtle">
-                  {doc.property} · {doc.date}
+                  {doc.type} · {doc.date}
                 </span>
               </span>
               <span className="max-sm:hidden">
@@ -70,7 +70,8 @@ export function DocumentPreview() {
       <PreviewDivider />
       <PreviewSection className="py-2">
         <div className="divide-y divide-line-subtle">
-          <PreviewRow label="Access" value="Owner and authorised team" />
+          <PreviewRow icon={House} label="Property" value={d.property} />
+          <PreviewRow icon={Lock} label="Access" value="Private · owner and authorised team" />
           <PreviewRow label="Last updated" value={d.lastUpdated} />
         </div>
       </PreviewSection>
