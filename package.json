@@ -12,7 +12,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "qa": "node scripts/qa.mjs",
-    "qa:portal": "node scripts/portal-e2e.mjs",
+    "qa:portal": "node --env-file-if-exists=.env.local scripts/portal-e2e.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

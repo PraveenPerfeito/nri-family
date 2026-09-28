@@ -25,7 +25,8 @@
  *     CUSTOMER_SIGNUPS_OPEN=true npm run dev
  *
  * Env: PORT (54321), SITE_URL for emailed links (http://localhost:3000),
- * AUTOCONFIRM=true to skip email confirmation, SIGNUPS=false to refuse
+ * AUTOCONFIRM=true to skip email confirmation, TEAM_EMAILS=a@x,b@y to email only
+ * those addresses (like Supabase's built-in email), SIGNUPS=false to refuse
  * sign-ups (like "Allow new users to sign up" off), LOG=true to log requests.
  * Keys: publishable sb_publishable_local_dev_only; admin (for
  * scripts/portal-e2e.mjs and scripts/seed-demo.mjs) local-dev-service-role-key.
@@ -44,6 +45,9 @@ const BASE = `http://127.0.0.1:${PORT}`;
 const SITE_URL = (process.env.SITE_URL ?? "http://localhost:3000").replace(/\/$/, "");
 const AUTOCONFIRM = process.env.AUTOCONFIRM === "true";
 const SIGNUPS = process.env.SIGNUPS !== "false";
+// Like Supabase's built-in email: only these addresses can be emailed (comma-separated; empty = all).
+const TEAM_EMAILS = (process.env.TEAM_EMAILS ?? "").split(",").map((e) => e.trim().toLowerCase()).filter(Boolean);
+const canEmail = (email) => TEAM_EMAILS.length === 0 || TEAM_EMAILS.includes(email);
 const JWT_SECRET = randomBytes(32);
 const PUBLISHABLE_KEY = "sb_publishable_local_dev_only";
 const SERVICE_KEY = "local-dev-service-role-key";
@@ -198,6 +202,10 @@ async function handleAuth(method, path, query, headers, body) {
     if (existing) {
       // Like GoTrue with confirmations on: an obfuscated user, no session, no email.
       return { status: 200, body: { ...userJson({ ...existing, id: randomUUID() }), identities: [] } };
+    }
+    if (!AUTOCONFIRM && !canEmail(email)) {
+      // Supabase refuses before creating the user when its built-in email can't reach the address.
+      return authError(400, "email_address_not_authorized", `Email address "${email}" cannot be used as it is not authorized`);
     }
     const u = await createAuthUser(email, body.password, body.data, AUTOCONFIRM);
     if (AUTOCONFIRM) return { status: 200, body: issueSession(u) };

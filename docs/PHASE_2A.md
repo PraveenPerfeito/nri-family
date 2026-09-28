@@ -187,7 +187,7 @@ The triggers add the timeline event and the activity entry, and notify the custo
   - **Auth and REST are small emulations** of what supabase-js uses here. Emailed links are printed in its console.
   - Then run: `SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=sb_publishable_local_dev_only CUSTOMER_SIGNUPS_OPEN=true npm run dev`.
   - The data lives in memory. It is a development tool, not a substitute for testing against Supabase.
-- **Against a real development project:** put its URL and publishable key in `.env.local` as `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` (see [.env.example](../.env.example)).
+- **Against a real project:** copy [.env.example](../.env.example) to `.env.local` (git-ignored) and fill in `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CUSTOMER_SIGNUPS_OPEN=true` and, for the scripts, `SUPABASE_SERVICE_ROLE_KEY`. `npm run dev` then uses that project. Never put real values in `.env.example` itself: it is committed.
 - **Sample workspace** (development projects only): `node --env-file=.env.local scripts/seed-demo.mjs --dev --email you+demo@example.com` creates one clearly labelled demo customer, and `--delete` removes it. The script refuses to run against the project in site.ts, on Vercel, or without `--dev`. It never runs by itself.
 
 ## Testing
@@ -204,7 +204,8 @@ The triggers add the timeline event and the activity entry, and notify the custo
 ```bash
 npm run check                        # lint + types + all unit tests + build
 npm run qa                           # public site + signed-out portal checks
-npm run qa:portal                    # acceptance test (env: see the top of scripts/portal-e2e.mjs)
+npm run build && npm start           # the app on :3000, using .env.local
+npm run qa:portal                    # acceptance test in another terminal (reads .env.local)
 ```
 
 ### Acceptance test
@@ -213,7 +214,7 @@ npm run qa:portal                    # acceptance test (env: see the top of scri
 
 | # | Step | Checked |
 | --- | --- | --- |
-| 1 | Create a new customer account | The real registration form. If confirmation is on, it finishes through a real confirmation link. Profile is `CUSTOMER` with the entered details. |
+| 1 | Create a new customer account | The real registration form. If confirmation is on, it finishes through a real confirmation link. If the project can't email test addresses yet (built-in email only reaches your team), Supabase's refusal is shown to the visitor and the test confirms the account through an admin-generated link instead, noting it in the output. Profile is `CUSTOMER` with the entered details. |
 | 2 | Login | Signed-out `/app` goes to `/login`. Sign-in works. The session cookie is HttpOnly and SameSite=Lax. |
 | 3 | Empty dashboard | "Set up your workspace", "No properties yet", "Nothing needs your attention"; no request numbers |
 | 4–6 | Add "Chennai House", see it on the dashboard, open it | Saved as entered, owned by customer 1 |
