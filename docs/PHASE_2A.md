@@ -89,7 +89,7 @@ Every table has CHECK constraints on its columns, foreign keys and indexes for t
 - **Identity is verified on every request** with `auth.getClaims()`, which checks the token's signature, never just the cookie's presence. [src/lib/portal/session.ts](../src/lib/portal/session.ts) loads the profile and turns away anyone who is not a customer.
 - **Passwords** are 10–72 characters and can't be the email address; Supabase stores them (bcrypt). Changing the password in Settings re-checks the current one first.
 - **Email links** use `token_hash` links to `/auth/confirm` (see [Email templates](#email-templates)), so they work on any device. Supabase's default `?code=` links work too, in the same browser. Links work once.
-- **No account enumeration.** Wrong-password, reset and resend messages never reveal whether an address has an account.
+- **No account enumeration.** Wrong-password messages never say which part was wrong. The password-reset and resend-confirmation forms give one answer for every outcome, including Supabase's email limit. That limit only triggers for existing accounts, so surfacing it would reveal who is a customer.
 - **Open-redirect protection.** `?next=` only accepts `/app…` and `/reset-password` ([src/lib/portal/redirects.ts](../src/lib/portal/redirects.ts)).
 - **Rate limits** per client address, in memory: sign-in 10 per 10 minutes, registration 5 per hour, reset and confirmation emails 5 per hour. Supabase applies its own limits on top.
 - **Registration switch.** `customerSignupsOpen` in site.ts shows or hides the form and must match Supabase's "Allow new users to sign up". Keep both off until auth emails go out from our own domain.
@@ -145,7 +145,10 @@ Five layers. Any one of them alone would stop another customer's data from showi
 
 1. **Create the project** at supabase.com. The Mumbai region is closest to the properties and the team.
 2. **Apply the migration.** In **SQL Editor**, paste the whole migration file and run it (or `supabase db push` with the CLI). Run it once, on an empty project.
-3. **Authentication → URL Configuration.** Set the Site URL to `https://nri-family.vercel.app` (later, the final domain). Add these Redirect URLs: `https://nri-family.vercel.app/**` and, for development, `http://localhost:3000/**`.
+3. **Authentication → URL Configuration.**
+   - Set the Site URL to `https://nri-family.vercel.app` (later, the final domain).
+   - The only Redirect URL is `https://nri-family.vercel.app/**`.
+   - Don't add `localhost` to the live project. Supabase then sends any other redirect to the Site URL, so email links can never land on a developer's machine. Links requested from a local server open on the live site.
 4. **Authentication → Sign In / Providers → Email.**
    - Keep "Confirm email" on.
    - Set the minimum password length to 10.
@@ -157,6 +160,8 @@ Five layers. Any one of them alone would stop another customer's data from showi
 7. **Connect the site.** In **Project Settings → API Keys**, copy the Project URL and the **publishable** key (`sb_publishable_…`). Put both in the settings block of [src/config/site.ts](../src/config/site.ts) (`supabaseUrl`, `supabasePublishableKey`), then commit and push. Vercel redeploys.
    - Both values are public by design.
    - **Never** put the secret or service-role key there, in `.env.example`, in Vercel or in git.
+   - Scripts use a **secret key** (`sb_secret_…`, created under API Keys) as `SUPABASE_SERVICE_ROLE_KEY` in `.env.local`.
+   - Disable the legacy JWT-based `anon` / `service_role` keys: the site doesn't use them.
 8. **First accounts** while sign-ups are closed: **Authentication → Users → Add user → Create new user**, with "Auto Confirm User" ticked. The profile is created automatically as a customer. Share the password safely and ask them to change it in Settings. "Send invitation" works too once SMTP is set up.
 9. **Verify.** Run the [acceptance test](#acceptance-test) against the project. It creates two test customers and deletes them afterwards.
 
@@ -203,7 +208,7 @@ The triggers add the timeline event and the activity entry, and notify the custo
   - **Auth and REST are small emulations** of what supabase-js uses here. Emailed links are printed in its console.
   - Then run: `SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=sb_publishable_local_dev_only CUSTOMER_SIGNUPS_OPEN=true npm run dev`.
   - The data lives in memory. It is a development tool, not a substitute for testing against Supabase.
-- **Against a real project:** copy [.env.example](../.env.example) to `.env.local` (git-ignored) and fill in `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CUSTOMER_SIGNUPS_OPEN=true` and, for the scripts, `SUPABASE_SERVICE_ROLE_KEY`. `npm run dev` then uses that project. Never put real values in `.env.example` itself: it is committed.
+- **Against a real project:** copy [.env.example](../.env.example) to `.env.local` (git-ignored) and fill in `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `CUSTOMER_SIGNUPS_OPEN` (it must match the project: `false` while Supabase sign-ups are off) and, for the scripts, `SUPABASE_SERVICE_ROLE_KEY`. `npm run dev` then uses that project. Never put real values in `.env.example` itself: it is committed.
 - **Sample workspace** (development projects only): `node --env-file=.env.local scripts/seed-demo.mjs --dev --email you+demo@example.com` creates one clearly labelled demo customer, and `--delete` removes it. The script refuses to run against the project in site.ts, on Vercel, or without `--dev`. It never runs by itself.
 
 ## Testing
@@ -230,7 +235,7 @@ npm run qa:portal                    # acceptance test in another terminal (read
 
 | # | Step | Checked |
 | --- | --- | --- |
-| 1 | Create a new customer account | The real registration form. If confirmation is on, it finishes through a real confirmation link. If the project can't email test addresses yet (built-in email only reaches your team), Supabase's refusal is shown to the visitor and the test confirms the account through an admin-generated link instead, noting it in the output. Profile is `CUSTOMER` with the entered details. |
+| 1 | Create a new customer account | **Registration closed (the live setting):** the page says so, Supabase refuses a direct sign-up (`signup_disabled`), and the account is created the team's way (admin, auto-confirmed). **Registration open:** the real registration form. If confirmation is on, it finishes through a real confirmation link. If the project can't email test addresses yet (built-in email only reaches your team), Supabase's refusal is shown to the visitor and the test confirms the account through an admin-generated link instead, noting it in the output. Profile is `CUSTOMER` with the entered details. |
 | 2 | Login | Signed-out `/app` goes to `/login`. Sign-in works. The session cookie is HttpOnly and SameSite=Lax. |
 | 3 | Empty dashboard | "Set up your workspace", "No properties yet", "Nothing needs your attention"; no request numbers |
 | 4–6 | Add "Chennai House", see it on the dashboard, open it | Saved as entered, owned by customer 1 |
@@ -240,10 +245,10 @@ npm run qa:portal                    # acceptance test in another terminal (read
 | 12 | Activity contains "Service request created" | Page and the `REQUEST_CREATED` row by customer 1 |
 | 13 | Notification "Your service request has been received." | Listed under Unread; `read_at` is empty |
 | 14 | Logout | The request page is no longer reachable |
-| 15 | Second customer | Confirmed through a real email link (links work once) |
+| 15 | Second customer | Confirmed through a real email link (links work once), or created the team's way while sign-ups are closed |
 | 16 | Customer 2 can't reach customer 1's data | Property, edit, request, activity and notification pages. A forged form (customer 1's property id submitted) is refused. Direct Data API reads, updates, deletes, inserts and a role change as customer 2 are all refused. |
 | 17–18 | Back to customer 1; everything intact | Pages and rows unchanged; no injected requests |
-| + | Mark as read; profile update; password reset via link; cancel a request | Each checked in the database |
+| + | Mark as read; profile update; password reset via link (links work once); forgot-password gives the identical answer for an existing and an unknown address; cancel a request | Each checked in the database |
 
 **Results (28 Sept 2026):**
 
@@ -259,7 +264,7 @@ None are needed on Vercel for the portal. Public settings live in site.ts.
 | --- | --- | --- |
 | `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY` | `.env.local` only (optional) | Point a local server at a different project; they override site.ts |
 | `CUSTOMER_SIGNUPS_OPEN` | `.env.local` only (optional) | `true` shows registration locally |
-| `SUPABASE_SERVICE_ROLE_KEY` | Your shell, for scripts only | Admin key for `portal-e2e.mjs` and `seed-demo.mjs`. Bypasses RLS: never in `src/`, Vercel or git |
+| `SUPABASE_SERVICE_ROLE_KEY` | `.env.local`, for scripts only | A Supabase secret key (`sb_secret_…`), the admin key for `portal-e2e.mjs` and `seed-demo.mjs`. Bypasses RLS: never in `src/`, Vercel or git |
 | `RESEND_API_KEY`, `LEADS_WEBHOOK_*` | Vercel (unchanged from Phase 1) | Enquiry emails |
 
 ## Known limitations

@@ -16,6 +16,8 @@ export function createFakeSupabase() {
     claims: null as Record<string, unknown> | null,
     signInResult: { error: null as unknown },
     signUpResult: { data: { session: null as unknown, user: {} }, error: null as unknown },
+    /** What Supabase answers to a password-reset or resend-confirmation email request. */
+    emailResult: { data: {}, error: null as unknown },
     calls: [] as { method: string; args: unknown[] }[],
   };
 
@@ -71,7 +73,7 @@ export function createFakeSupabase() {
       },
       resetPasswordForEmail: async (...args: unknown[]) => {
         auth.calls.push({ method: "resetPasswordForEmail", args });
-        return { data: {}, error: null };
+        return auth.emailResult;
       },
       updateUser: async (...args: unknown[]) => {
         auth.calls.push({ method: "updateUser", args });
@@ -79,7 +81,7 @@ export function createFakeSupabase() {
       },
       resend: async (...args: unknown[]) => {
         auth.calls.push({ method: "resend", args });
-        return { data: {}, error: null };
+        return auth.emailResult;
       },
     },
   };
@@ -99,6 +101,7 @@ export function createFakeSupabase() {
       auth.claims = null;
       auth.signInResult = { error: null };
       auth.signUpResult = { data: { session: null, user: {} }, error: null };
+      auth.emailResult = { data: {}, error: null };
     },
   };
 }

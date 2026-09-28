@@ -34,6 +34,12 @@ const limits = {
 };
 
 const NOT_OPEN: ActionState = { status: "error", message: "Customer accounts are not open yet." };
+// Account-email answers never depend on whether the address has an account.
+const RESET_LINK_SENT: ActionState = {
+  status: "success",
+  message: "If an account exists for this email, you'll receive a password reset link. It works once and expires soon.",
+};
+const CONFIRMATION_RESENT: ActionState = { status: "success", message: "If that address is waiting for confirmation, a new link is on its way." };
 const TOO_MANY: ActionState = { status: "error", message: "Too many attempts from this connection. Please wait a few minutes and try again." };
 
 async function clientKey(): Promise<string> {
@@ -140,11 +146,10 @@ export async function resendConfirmationAction(_prev: ActionState, formData: For
     email: parsed.data.email,
     options: { emailRedirectTo: `${await siteOrigin()}${authCallbackPath}?next=${encodeURIComponent(portalRoutes.dashboard)}` },
   });
-  if (error && error.code !== "user_not_found") {
-    logPortalError("resend confirmation", error);
-    return { status: "error", message: authMessage(error) };
-  }
-  return { status: "success", message: "If that address is waiting for confirmation, a new link is on its way." };
+  // Same answer whatever happened (see forgotPasswordAction): an error such as
+  // Supabase's email limit only occurs for an address that has an account.
+  if (error && error.code !== "user_not_found") logPortalError("resend confirmation", error);
+  return CONFIRMATION_RESENT;
 }
 
 // ── Passwords ────────────────────────────────────────────────────────────────
@@ -159,12 +164,12 @@ export async function forgotPasswordAction(_prev: ActionState, formData: FormDat
   const { error } = await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${await siteOrigin()}${authCallbackPath}?next=${encodeURIComponent(routes.resetPassword)}`,
   });
-  if (error && error.code !== "user_not_found") {
-    logPortalError("request password reset", error);
-    if (error.code === "over_email_send_rate_limit" || error.code === "over_request_rate_limit") return { status: "error", message: authMessage(error) };
-  }
-  // Never reveal whether an account exists.
-  return { status: "success", message: "If an account exists for that address, we've sent a link to reset the password. It works once and expires soon." };
+  // One answer for every outcome: link sent, unknown address, or a Supabase error.
+  // Errors such as Supabase's email limit only occur when the address has an
+  // account, so surfacing them would reveal who is a customer. Failures are
+  // logged (codes only, never the address).
+  if (error && error.code !== "user_not_found") logPortalError("request password reset", error);
+  return RESET_LINK_SENT;
 }
 
 /** Sets a new password in the session created by a recovery email link. */

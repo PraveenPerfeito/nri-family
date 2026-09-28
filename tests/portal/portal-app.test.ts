@@ -25,11 +25,12 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("next/headers", () => ({
-  headers: async () => new Headers({ "x-forwarded-for": "203.0.113.9", origin: "https://nri-family.vercel.app" }),
+  // A fresh client address per test keeps the app's own per-connection limits out of the way.
+  headers: async () => new Headers({ "x-forwarded-for": state.clientIp, origin: "https://nri-family.vercel.app" }),
   cookies: async () => ({ getAll: () => [], set: () => undefined }),
 }));
 
-const state = vi.hoisted(() => ({ configured: true, signupsOpen: true, ssrOptions: [] as unknown[] }));
+const state = vi.hoisted(() => ({ configured: true, signupsOpen: true, ssrOptions: [] as unknown[], clientIp: "203.0.113.1", tests: 0 }));
 vi.mock("@/lib/supabase/config", () => ({
   isPortalConfigured: () => state.configured,
   areSignupsOpen: () => state.configured && state.signupsOpen,
@@ -50,7 +51,7 @@ const { requireCustomer } = await import("@/lib/portal/session");
 const { createPropertyAction, deletePropertyAction, updatePropertyAction } = await import("@/lib/portal/actions/properties");
 const { cancelRequestAction, createRequestAction } = await import("@/lib/portal/actions/requests");
 const { updateProfileAction } = await import("@/lib/portal/actions/account");
-const { forgotPasswordAction, signInAction, signUpAction } = await import("@/lib/portal/actions/auth");
+const { forgotPasswordAction, resendConfirmationAction, signInAction, signUpAction } = await import("@/lib/portal/actions/auth");
 const { updateSession } = await import("@/lib/supabase/proxy");
 const { NextRequest } = await import("next/server");
 
@@ -75,6 +76,7 @@ const form = (fields: Record<string, string>) => {
 
 beforeEach(() => {
   fake.reset();
+  state.clientIp = `198.51.100.${++state.tests % 250}`;
   state.configured = true;
   state.signupsOpen = true;
 });
@@ -299,10 +301,46 @@ describe("account actions", () => {
     expect(result.fieldErrors).toMatchObject({ password: expect.any(String), consent: expect.any(String) });
   });
 
-  it("password reset gives the same answer whether or not the account exists", async () => {
-    const result = await forgotPasswordAction({ status: "idle" }, form({ email: "nobody@example.test" }));
-    expect(result.message).toMatch(/^If an account exists/);
+  it("password reset sends the link back to this site's reset page", async () => {
+    const result = await forgotPasswordAction({ status: "idle" }, form({ email: "someone@example.test" }));
+    expect(result).toEqual({ status: "success", message: "If an account exists for this email, you'll receive a password reset link. It works once and expires soon." });
     const [, options] = fake.auth.calls.find((c) => c.method === "resetPasswordForEmail")!.args as [string, { redirectTo: string }];
     expect(options.redirectTo).toBe("https://nri-family.vercel.app/auth/confirm?next=%2Freset-password");
+  });
+
+  // Supabase only tries to send (and so only hits its email limit) when the address
+  // has an account; any different answer would reveal who is a customer.
+  const supabaseOutcomes: [string, unknown][] = [
+    ["the link was sent", null],
+    ["the address has no account", { code: "user_not_found", status: 404 }],
+    ["Supabase's email limit was reached", { code: "over_email_send_rate_limit", status: 429 }],
+    ["Supabase's request limit was reached", { code: "over_request_rate_limit", status: 429 }],
+    ["Supabase failed", { code: "unexpected_failure", status: 500 }],
+  ];
+
+  it.each(supabaseOutcomes)("password reset gives the identical answer when %s", async (_outcome, error) => {
+    const baseline = await forgotPasswordAction({ status: "idle" }, form({ email: "someone@example.test" }));
+    fake.auth.emailResult = { data: {}, error };
+    const result = await forgotPasswordAction({ status: "idle" }, form({ email: "someone@example.test" }));
+    expect(result).toEqual(baseline);
+    expect(result.status).toBe("success");
+  });
+
+  it.each(supabaseOutcomes)("resending the confirmation gives the identical answer when %s", async (_outcome, error) => {
+    const baseline = await resendConfirmationAction({ status: "idle" }, form({ email: "someone@example.test" }));
+    fake.auth.emailResult = { data: {}, error };
+    const result = await resendConfirmationAction({ status: "idle" }, form({ email: "someone@example.test" }));
+    expect(result).toEqual(baseline);
+    expect(result.status).toBe("success");
+  });
+
+  it("logs a failed reset by error code only, never the address", async () => {
+    const logged = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    fake.auth.emailResult = { data: {}, error: { code: "over_email_send_rate_limit", status: 429 } };
+    await forgotPasswordAction({ status: "idle" }, form({ email: "private.person@example.test" }));
+    expect(logged).toHaveBeenCalled();
+    expect(JSON.stringify(logged.mock.calls)).toContain("over_email_send_rate_limit");
+    expect(JSON.stringify(logged.mock.calls)).not.toContain("private.person");
+    logged.mockRestore();
   });
 });
