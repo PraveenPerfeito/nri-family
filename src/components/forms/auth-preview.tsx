@@ -21,7 +21,7 @@ export function AuthPreview({
       <div role="note" className="flex gap-3 rounded-card border border-info/15 bg-info-soft p-4 text-sm">
         <Construction aria-hidden className="mt-0.5 size-5 shrink-0 text-info" />
         <p className="leading-relaxed text-ink-muted">
-          <strong className="text-ink">Coming in Phase 2.</strong> Customer accounts are not open yet. In the meantime, our team can
+          <strong className="text-ink">Coming to the platform.</strong> Customer accounts are not open yet. In the meantime, our team can
           help you directly.
         </p>
       </div>

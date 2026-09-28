@@ -2,7 +2,7 @@
 
 # Project: NRI Family Office (Digital Family Office for NRIs in Tamil Nadu)
 
-Phase 1 = **Layer 1, public website only**. Layers 2–5 (NRI Portal, Admin ERP, Vendor Portal, Professional Partner Portal) are planned but **must not be built** until explicitly requested. Don't add empty placeholder routes for them; a test enforces this. The plan is in `docs/phase-1/future-architecture.md`.
+Phase 1 = **Layer 1, the public website**. Phase 2A = **the foundation of Layer 2, the customer portal** (`/app`; see `docs/PHASE_2A.md`). Layers 3–5 (Admin ERP / operations console, Vendor Portal, Professional Partner Portal) and Phase 2B are planned but **must not be built** until explicitly requested. Don't add empty placeholder routes for them; a test enforces this. The plan is in `docs/phase-1/future-architecture.md`.
 
 ## Branding is NOT confirmed
 
@@ -15,6 +15,7 @@ Phase 1 = **Layer 1, public website only**. Layers 2–5 (NRI Portal, Admin ERP,
 - All **public** settings are in the settings block at the top of `src/config/site.ts`: brand, domain, public contact channels, leads inbox, company details and `allowSearchIndexing` (false until launch). The user could not edit Vercel's Sensitive env vars, so don't move these back into env vars.
 - Public contact channels (`contactEmail`, `contactWhatsapp`, `contactPhone`) stay **empty until business contact details exist** (UI V2 privacy rule): never put a personal email or number there. The leads inbox (`leadsEmail`) is private and only used server-side.
 - Only **secrets** go in Vercel env vars (optional `RESEND_API_KEY`, `LEADS_WEBHOOK_URL` / `LEADS_WEBHOOK_SECRET`).
+- The portal's Supabase connection is public settings too: `supabaseUrl`, `supabasePublishableKey` (`sb_publishable_…`) and `customerSignupsOpen` in site.ts. Empty = portal off. `customerSignupsOpen` must match Supabase's "Allow new users to sign up". The **service-role / secret key never goes in the app** (not in `src/`, site.ts, `.env.example` or Vercel); only scripts on the developer's machine use it. Tests fail on a service-role key or JWT in `src/`.
 - **Enquiries** are emailed only when `VERCEL_ENV` is set, so local dev and QA never email the owner. Preferred: Resend, server-side, when `RESEND_API_KEY` is set (template in `src/lib/leads/notification-email.ts`: no images, HTML-escape every visitor value). Backup, or when there is no key: FormSubmit. FormSubmit blocks requests from Vercel's servers, so the Server Action validates and then returns a `relay` result, and the browser posts it (`src/lib/leads/browser-relay.ts`). Keep that split: don't move the FormSubmit call back to the server. Never point `npm run qa` at the live site without `QA_READONLY=true`: normal runs submit real forms.
 
 ## Commands
@@ -23,17 +24,22 @@ Phase 1 = **Layer 1, public website only**. Layers 2–5 (NRI Portal, Admin ERP,
 - `npm run check`: lint + typecheck + unit tests + production build (the pre-merge gate; must pass)
 - `npm test`: Vitest unit tests in `tests/`
 - `npm run qa`: browser QA against a running server (`scripts/qa.mjs`). Run `LEADS_WEBHOOK_URL=http://127.0.0.1:3199/leads npm start` first, then `QA_BROWSER=msedge|chrome|firefox|webkit npm run qa`.
+- `npm run dev:supabase`: local Supabase stand-in on :54321 (real migration + RLS in PGlite, emulated Auth/REST; development only). Start the app with `SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=sb_publishable_local_dev_only CUSTOMER_SIGNUPS_OPEN=true` (build and start with the same env).
+- `npm run qa:portal`: the Phase 2A acceptance test (`scripts/portal-e2e.mjs`; env at the top of the file). It creates and deletes two test customers.
 
 ## Stack and layout
 
-Next.js 16 (App Router, Turbopack, all pages static), React 19, TypeScript strict, Tailwind v4, Zod, lucide-react. Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md): request APIs are async, and `proxy.ts` replaces `middleware.ts`.
+Next.js 16 (App Router, Turbopack; marketing pages static, portal pages dynamic), React 19, TypeScript strict, Tailwind v4, Zod, lucide-react, Supabase (`@supabase/ssr`, Auth + Postgres). Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md): request APIs are async, and `proxy.ts` replaces `middleware.ts`.
 
-- `src/app/(public)/`: marketing pages. `src/app/(auth)/`: `/login` and `/register` Phase 2 placeholders.
+- `src/app/(public)/`: marketing pages. `src/app/(auth)/`: `/login`, `/register`, `/forgot-password`, `/reset-password` (honest "coming" state while no Supabase project is connected). `src/app/auth/confirm`: email-link landing. `src/app/(portal)/app/`: the customer portal.
+- `src/proxy.ts` + `src/lib/supabase/`: session refresh and the only place Supabase clients are created (server only; there is no browser client, so session cookies are HttpOnly).
+- `src/lib/portal/`: `session.ts` (`requireCustomer`), `data.ts` (queries), `actions/` (Server Actions), `validation.ts`, `domain.ts`, `format.ts`. `src/components/portal/`: portal UI.
+- `supabase/migrations/`: the schema, RLS, grants and triggers. `tests/db/`: the migration tested for real in PGlite.
 - `src/config/`: `site.ts` (brand/contact/company from env), `routes.ts` (every route; drives nav, sitemap and tests), `navigation.ts`, `services.ts` (service copy), `leads.ts` (form options).
 - `src/data/`: `marketing.ts` (the **Available now / Coming** roadmap), `faq.ts`, `demo.ts` (fictional sample data only).
 - `src/lib/`: `seo/` (`pageMetadata`, JSON-LD), `validation/`, `leads/` (Server Actions + email relay / webhook delivery), `analytics/`, `security/`.
 - `src/components/marketing/home/`: the UI V2 homepage sections (hero + command center, radial ecosystem, services showcase, evidence timeline, privacy access diagram, family-office vision, dashboard, property control, journey).
-- `docs/phase-1/`: product, IA, design system, routes, SEO, security, architecture, testing, spec-compliance, ui-v2.
+- `docs/phase-1/`: product, IA, design system, routes, SEO, security, architecture, testing, spec-compliance, ui-v2. `docs/PHASE_2A.md`: the portal (setup, security model, tests, limitations).
 
 ## Rules (from the master spec; trust is the product)
 
@@ -43,7 +49,9 @@ Next.js 16 (App Router, Turbopack, all pages static), React 19, TypeScript stric
 - **Privacy:** never display customer information publicly. Listings show city only and "Contact through platform".
 - **Regulated work:** we *coordinate* qualified professionals. Never imply we provide legal, tax, medical or other regulated services; keep the scope notes.
 - **Forms:** keep server-side Zod validation, honeypot and timing checks, and the rate limit. Never fake success: if delivery isn't configured, say so. Never log or track personal data (analytics props are allow-listed).
-- **Auth:** don't fake sign-in or account creation until a real backend exists.
+- **Auth:** real Supabase Auth only; never fake sign-in or account creation. Every new account is a CUSTOMER; roles are never set from user input.
+- **Portal data:** the portal shows only the signed-in customer's own records. No sample data, previews or marketing sections in `/app` (a test enforces this). Honest empty states instead.
+- **Portal security:** every portal page and Server Action calls `requireCustomer()` (never rely on the layout or the proxy); queries also filter by the customer's id; missing and someone else's records get the same "not found". The database is the last line: RLS on every table, column-level grants, and timeline / activity / notifications written only by triggers in the same transaction. Change the schema only with a new migration plus tests in `tests/db/`. Activity metadata holds field names, never values. Portal pages stay `noindex` and `no-store`.
 - **Copy:** simple, confident English; short sentences; no hype or fake urgency.
 
 ## Code conventions
@@ -52,6 +60,6 @@ Next.js 16 (App Router, Turbopack, all pages static), React 19, TypeScript stric
 - Styling uses tokens only (`@theme` in `src/app/globals.css`). Don't use raw hex values in components. UI V2 is "quiet premium": Geist only, one teal accent, 1px borders, restrained shadows, no stock photos (see `docs/phase-1/design-system.md`).
 - `bg-grid-fade` / `bg-grid-night` fade with a CSS mask that applies to the whole element: only use them on an empty decorative layer, never on an element with content (plain `bg-grid` is safe anywhere).
 - **No competing utility classes:** there is no `tailwind-merge`. Never pass a class that fights a component's own class for the same property (e.g. `hidden` vs `inline-flex`). Override with a variant prefix (`max-sm:hidden`) or add a prop.
-- Buttons: `ButtonLink`/`Button` variants `primary | secondary | quiet | ghost`. Keep one primary CTA ("Get Started") per view.
+- Buttons: `ButtonLink`/`Button` variants `primary | secondary | quiet | ghost | danger` (`danger` only inside a destructive confirmation). Keep one primary CTA per view ("Get Started" on the site).
 - Analytics: add `track=` / `data-track=` with an event from `src/lib/analytics/events.ts`. Never send form values.
 - Keep client components minimal. Most components are server components.

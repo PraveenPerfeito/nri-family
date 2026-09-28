@@ -8,8 +8,9 @@ const isDev = process.env.NODE_ENV !== "production";
  *
  * Next.js injects inline bootstrap scripts, so `script-src` allows
  * 'unsafe-inline'. A nonce-based policy (via `proxy.ts`) would force every
- * page to render dynamically; revisit that trade-off when authenticated
- * layers (portal/admin) are added. See docs/phase-1/security.md.
+ * page to render dynamically. The customer portal (Phase 2A) keeps this
+ * policy: it talks to Supabase only from the server, so the browser needs no
+ * extra connect-src. See docs/phase-1/security.md and docs/PHASE_2A.md.
  */
 const csp = [
   "default-src 'self'",
@@ -53,11 +54,22 @@ const securityHeaders = [
  */
 const noIndexHeaders = siteConfig.allowSearchIndexing ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }];
 
+/** The private workspace and auth callbacks are never indexed or cached, launched or not. */
+const privateHeaders = [
+  { key: "X-Robots-Tag", value: "noindex, nofollow" },
+  { key: "Cache-Control", value: "private, no-store" },
+];
+
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   async headers() {
-    return [{ source: "/:path*", headers: [...securityHeaders, ...noIndexHeaders] }];
+    return [
+      { source: "/:path*", headers: [...securityHeaders, ...noIndexHeaders] },
+      { source: "/app/:path*", headers: privateHeaders },
+      { source: "/app", headers: privateHeaders },
+      { source: "/auth/:path*", headers: privateHeaders },
+    ];
   },
   async redirects() {
     return [{ source: "/security", destination: "/trust", permanent: true }];

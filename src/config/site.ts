@@ -61,6 +61,21 @@ const settings = {
    * Set to true at launch (then commit + push to redeploy).
    */
   allowSearchIndexing: false,
+  /**
+   * Customer portal (Layer 2, /app). Both values are PUBLIC by design: the
+   * publishable (anon) key only works together with the database's Row Level
+   * Security. Empty = portal off, and /login and /register say it is coming.
+   * Never put the secret / service-role key here or in any env var the app
+   * reads — the app does not need it. See docs/PHASE_2A.md.
+   */
+  supabaseUrl: "",
+  supabasePublishableKey: "",
+  /**
+   * Anyone can create a customer account. Keep false (sign-in only, for
+   * accounts the team creates) until auth emails go out from our own domain
+   * and the operations team can work requests (Phase 2B).
+   */
+  customerSignupsOpen: false,
 };
 
 function optional(value: string | undefined): string | undefined {
@@ -128,6 +143,16 @@ export const siteConfig = {
     registeredAddress: optional(settings.companyAddress),
   },
   allowSearchIndexing: settings.allowSearchIndexing,
+  /**
+   * Customer portal connection. Optional env overrides (SUPABASE_URL,
+   * SUPABASE_PUBLISHABLE_KEY, CUSTOMER_SIGNUPS_OPEN) exist for local
+   * development and automated tests against a separate project.
+   */
+  portal: {
+    supabaseUrl: optional(process.env.SUPABASE_URL) ?? optional(settings.supabaseUrl),
+    supabasePublishableKey: optional(process.env.SUPABASE_PUBLISHABLE_KEY) ?? optional(settings.supabasePublishableKey),
+    signupsOpen: process.env.CUSTOMER_SIGNUPS_OPEN ? process.env.CUSTOMER_SIGNUPS_OPEN === "true" : settings.customerSignupsOpen,
+  },
   copyrightYear: 2026,
 };
 

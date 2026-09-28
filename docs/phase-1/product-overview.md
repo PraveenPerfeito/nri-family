@@ -62,7 +62,7 @@ These need confirmation from the business. Each is easy to change.
 
 ## Out of scope for Phase 1
 
-- Authentication, customer accounts, dashboards and portals. `/login` and `/register` render a clearly labelled "Coming in Phase 2" preview and never pretend to sign anyone in.
+- Authentication, customer accounts, dashboards and portals. `/login` and `/register` render a clearly labelled "Coming in Phase 2" preview and never pretend to sign anyone in. *(Phase 2A has since built the customer portal; see [docs/PHASE_2A.md](../PHASE_2A.md). While no Supabase project is connected, the account pages say "Coming to the platform".)*
 - Marketplace backend and real listings. `/property` shows fictional sample cards only.
 - Payments, document storage, vendor and partner workflows.
 - Analytics vendor integration. The event architecture is in place (see [information-architecture.md](information-architecture.md#analytics-events)), but no tracker is loaded.

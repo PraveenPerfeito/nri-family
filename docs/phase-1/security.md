@@ -2,6 +2,8 @@
 
 Phase 1 has no accounts and stores no customer data. The attack surface is the two enquiry forms, response headers and the build itself. These are the measures in place.
 
+> **Phase 2A** added the customer portal (accounts, properties, requests). Its security model (Supabase Auth, HttpOnly session cookies, `requireCustomer()` on every page and action, Row Level Security, column-level grants and trigger-written audit records) is documented in [docs/PHASE_2A.md](../PHASE_2A.md#authorization-and-security).
+
 ## HTTP headers
 
 Set for every route in [next.config.ts](../../next.config.ts). The QA script verifies them.
@@ -65,8 +67,9 @@ Logs never contain personal data. Delivery failures log only the HTTP status. Th
 
 ## Carry-forward for Layer 2+
 
-- Authentication: session cookies (`HttpOnly`, `Secure`, `SameSite=Lax`), MFA for staff roles, and account lockout plus shared-store rate limits on auth endpoints.
-- Authorise inside every Server Action and Route Handler, not only in layouts or `proxy.ts`.
-- Row-level access by role and ownership (see [future-architecture.md](future-architecture.md)). Documents go in private object storage behind signed, short-lived URLs.
-- An audit log for sensitive actions: visibility changes, document access, approvals and role changes.
-- Nonce-based CSP for authenticated routes.
+Done in Phase 2A: session cookies are `HttpOnly`, `SameSite=Lax` and `Secure` on HTTPS; every Server Action and Route Handler authorises itself; row-level access by ownership; an activity log for every change. Still open:
+
+- MFA for staff roles, and account lockout plus shared-store rate limits on auth endpoints (today's limits are in memory, per instance).
+- Row-level access by **role** for staff, vendors and partners (see [future-architecture.md](future-architecture.md)). Documents go in private object storage behind signed, short-lived URLs.
+- Audit entries for staff actions: visibility changes, document access, approvals and role changes. Decide how long activity is kept after an account is deleted.
+- Nonce-based CSP for authenticated routes (the portal renders per request, so it can carry nonces).

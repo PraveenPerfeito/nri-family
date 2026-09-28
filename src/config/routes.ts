@@ -22,6 +22,8 @@ export const routes = {
   terms: "/terms",
   login: "/login",
   register: "/register",
+  forgotPassword: "/forgot-password",
+  resetPassword: "/reset-password",
 } as const;
 
 export type RouteKey = keyof typeof routes;
@@ -48,5 +50,27 @@ export const indexableRoutes: { path: AppRoute; priority: number }[] = [
   { path: routes.terms, priority: 0.3 },
 ];
 
-/** Not indexed until authentication ships in Phase 2. */
-export const nonIndexedRoutes: AppRoute[] = [routes.login, routes.register];
+/** Account pages: reachable, never indexed. */
+export const nonIndexedRoutes: AppRoute[] = [routes.login, routes.register, routes.forgotPassword, routes.resetPassword];
+
+/**
+ * The private customer portal (Layer 2). Never in the sitemap, disallowed in
+ * robots.txt and sent with `X-Robots-Tag: noindex`.
+ */
+export const portalRoutes = {
+  dashboard: "/app",
+  properties: "/app/properties",
+  newProperty: "/app/properties/new",
+  property: (id: string) => `/app/properties/${id}`,
+  editProperty: (id: string) => `/app/properties/${id}/edit`,
+  requests: "/app/requests",
+  newRequest: "/app/requests/new",
+  request: (id: string) => `/app/requests/${id}`,
+  activity: "/app/activity",
+  notifications: "/app/notifications",
+  profile: "/app/profile",
+  settings: "/app/settings",
+} as const;
+
+/** Where auth emails land (Supabase confirmation / recovery links). */
+export const authCallbackPath = "/auth/confirm";

@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.test.ts"],
+    // The database suite boots Postgres (PGlite) once per file.
+    testTimeout: 30_000,
   },
 });

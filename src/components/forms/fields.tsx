@@ -115,7 +115,16 @@ export function ChoiceGroup({
   );
 }
 
-export function ConsentCheckbox({ error, children }: { error?: string; children: ReactNode }) {
+export function ConsentCheckbox({
+  error,
+  children,
+  message = "Please confirm you agree so we can contact you.",
+}: {
+  error?: string;
+  children: ReactNode;
+  /** Shown when the box is left unticked. */
+  message?: string;
+}) {
   return (
     <div>
       <label htmlFor="consent" className="flex cursor-pointer items-start gap-3 text-sm text-ink-muted">
@@ -124,7 +133,7 @@ export function ConsentCheckbox({ error, children }: { error?: string; children:
           type="checkbox"
           name="consent"
           required
-          data-message="Please confirm you agree so we can contact you."
+          data-message={message}
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? "consent-error" : undefined}
           className="mt-0.5 size-4 shrink-0 accent-brand"

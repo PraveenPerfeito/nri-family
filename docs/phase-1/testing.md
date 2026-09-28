@@ -31,12 +31,15 @@ BASE_URL=https://nri-family.vercel.app QA_READONLY=true QA_BROWSER=msedge npm ru
 | `lead-actions.test.ts` | Server Actions end to end with mocked `fetch`: webhook payload, field errors, honeypot, timing trap, rate limit, honest "not enabled" in production, no personal data in error logs; email relay (relay instruction only on Vercel, never locally, never for invalid or spam submissions; readable formatting; fallback message with direct contacts; webhook success reported); Resend channel (branded email sent server-side on Vercel with the right headers and fields, FormSubmit fallback if Resend fails, never used locally); WhatsApp chat link in the FormSubmit email |
 | `notification-email.test.ts` | The branded email: subject, reply-to, reply / WhatsApp / call links, no images, website signature, details in HTML and text, HTML escaping of visitor input, single-line subject; customer WhatsApp link rules (country code, or 10-digit Indian numbers) |
 | `browser-relay.test.ts` | The browser hand-off: posts the server-built body, success on FormSubmit's `success: "true"`, direct-contact fallback when rejected or offline, success if the webhook already delivered |
-| `deployment-config.test.ts` | Canonical URL resolution (configured domain → Vercel production domain → localhost), WhatsApp link, pre-launch noindex header matches `allowSearchIndexing` |
+| `deployment-config.test.ts` | Canonical URL resolution (configured domain → Vercel production domain → localhost), WhatsApp link, pre-launch noindex header matches `allowSearchIndexing`; `noindex` + `no-store` headers on `/app` and `/auth`; the portal connection is complete or off, HTTPS, and uses a publishable key only; session cookie flags |
 | `security-and-analytics.test.ts` | Rate limiter windowing; analytics allow-list drops personal data; JSON-LD escaping |
-| `seo-and-routes.test.ts` | Every route has a page; every nav/footer/service link resolves; sitemap completeness; no future-layer placeholders; metadata helper output |
-| `content-guards.test.ts` | Fails if a brand name is hard-coded instead of read from config (branding not confirmed); fails on unsupported claims (ISO/SOC 2/GDPR certification, "bank-grade", "guaranteed", "No.1", customer counts, awards, hype, testimonials); sample data has no emails, phone numbers or street addresses; secrets are never exposed through `NEXT_PUBLIC_` |
+| `seo-and-routes.test.ts` | Every route has a page (portal routes included); every nav/footer/service link resolves; sitemap completeness; no Layer 3–5 placeholders; the portal renders per request, is `noindex` and stays out of the sitemap and robots; metadata helper output |
+| `content-guards.test.ts` | Fails if a brand name is hard-coded instead of read from config (branding not confirmed); fails on unsupported claims (ISO/SOC 2/GDPR certification, "bank-grade", "guaranteed", "No.1", customer counts, awards, hype, testimonials); sample data has no emails, phone numbers or street addresses; secrets are never exposed through `NEXT_PUBLIC_`; no Supabase service-role key or JWT in `src/`; Supabase clients only in `src/lib/supabase`; portal code never imports sample data or previews |
+| `db/portal-rls.test.ts` | Phase 2A: the real migration in PGlite behind a Supabase shim. Sign-up profiles, RLS on every table (cross-customer denial), column privileges, request numbering, the transactional timeline + activity + notification writes, cancel rules, internal events hidden, anonymous access denied, account deletion |
+| `portal/portal-app.test.ts` | Phase 2A: session gate, proxy redirects and headers, cookie flags and every Server Action, against a recording fake Supabase client |
+| `portal/portal-logic.test.ts` | Phase 2A: validation schemas, open-redirect guard, request stages, time-zone formatting, activity lines |
 
-Result at the end of Phase 1: **110 tests passing** (unchanged after UI V2).
+Result at the end of Phase 1: **110 tests passing** (unchanged after UI V2). After Phase 2A: **226 tests passing**.
 
 > **Windows:** run the tests from a terminal whose path starts with an uppercase drive letter (`C:\Uraavu.com`). When the working directory is spelled `c:\Uraavu.com`, Vitest reports "failed to find the runner" and runs no tests. The code is not at fault.
 
@@ -51,7 +54,7 @@ For **every route**:
 
 - Exactly one `<h1>`, no skipped heading levels, `<html lang>` set
 - Title, a 50–160 character meta description, a correct canonical URL, Open Graph (title, image, url) and a Twitter card. No duplicate titles or descriptions.
-- Valid JSON-LD; `noindex` only on `/login` and `/register`
+- Valid JSON-LD; `noindex` only on the account pages (`/login`, `/register`, `/forgot-password`, `/reset-password`)
 - No broken images or images missing `alt`; every form control labelled; every link and button has an accessible name
 - Every internal link returns < 400; every in-page anchor has a target
 
@@ -130,3 +133,10 @@ The automated checks above cover the engines these devices use. A quick hands-on
 - Run Google's Rich Results Test on `/faq` and a service page (after search indexing is enabled at launch)
 
 > **Against the live site, always set `QA_READONLY=true`.** Normal runs submit real forms, which would email the owner and use up the rate limit. Local runs are safe, because email is only sent on Vercel.
+
+## Customer portal (Phase 2A)
+
+The portal has its own browser checks; see [docs/PHASE_2A.md](../PHASE_2A.md#testing).
+
+- `scripts/qa.mjs` covers it signed out: `/app` pages redirect to `/login` with `noindex` and `no-store`, `robots.txt` disallows `/app` and `/auth`, and the sitemap has no private or account pages.
+- `npm run qa:portal` (`scripts/portal-e2e.mjs`) runs the full signed-in acceptance journey against a running app and a Supabase project, or the local stand-in (`npm run dev:supabase`). Build and start the app with the same `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `CUSTOMER_SIGNUPS_OPEN=true`.

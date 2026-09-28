@@ -36,7 +36,7 @@ This doc traces each section of the Phase 1 master prompt to where it is impleme
 | 30 | `/about` headline, belief, vision, mission; no fake team or numbers | [about/page.tsx](../../src/app/(public)/about/page.tsx) |
 | 31 | `/contact` fields, ten categories, consent | `ContactForm`. The direct email and WhatsApp link appear once business contact details are set in site.ts (empty since UI V2 §33). |
 | 32 | `/get-started` fields and exact success message; no response-time promise | `GetStartedForm`; message in [actions.ts](../../src/lib/leads/actions.ts) |
-| 33 | Login/Register fields; never fake account creation; "Coming in Phase 2" | `AuthPreview` (disabled fieldset, labelled). Login shows "Forgot password?" and "New here? Create your Family Office". |
+| 33 | Login/Register fields; never fake account creation; "Coming in Phase 2" | `AuthPreview` (disabled fieldset, labelled). Login shows "Forgot password?" and "New here? Create your Family Office". Since Phase 2A: real Supabase forms once a project is connected; until then the preview says "Coming to the platform". |
 | 34 | `/property` concept page with fictional cards | `PropertyCard` × 4 (sample data, "Contact through platform") |
 | 35 | Pricing (optional): Essential / Family / Premium, no numbers, "Request a plan" / "Talk to us" | Plans on `/services#plans` |
 | 36 | FAQ (eight required questions) | [src/data/faq.ts](../../src/data/faq.ts) (the 8 plus 2), `/faq` + homepage |

@@ -1,8 +1,8 @@
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { footerNav, primaryNav } from "@/config/navigation";
-import { indexableRoutes, nonIndexedRoutes, routes } from "@/config/routes";
+import { indexableRoutes, nonIndexedRoutes, portalRoutes, routes } from "@/config/routes";
 import { services } from "@/config/services";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -38,10 +38,29 @@ describe("routes", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it("does not ship pages for future layers yet", () => {
-    for (const future of ["portal", "admin", "vendor", "partners"]) {
+  it("does not ship pages for layers 3–5 yet (admin, vendor, partners)", () => {
+    for (const future of ["admin", "vendor", "partners", "(admin)", "(vendor)", "(partners)"]) {
       expect(existsSync(join(APP, future)), future).toBe(false);
     }
+  });
+
+  it.each(Object.values(portalRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)))("portal route %s has a page", (route) => {
+    expect(existsSync(join(APP, "(portal)", route.slice(1), "page.tsx")), route).toBe(true);
+  });
+
+  it("renders the portal per request for the signed-in customer, never prerendered or indexed", () => {
+    const layout = readFileSync(join(APP, "(portal)", "app", "layout.tsx"), "utf8");
+    expect(layout).toContain('export const dynamic = "force-dynamic"');
+    expect(layout).toMatch(/robots:\s*\{\s*index:\s*false,\s*follow:\s*false/);
+    expect(layout).toContain("requireCustomer(");
+  });
+
+  it("keeps the customer portal out of the sitemap and search engines", async () => {
+    const indexable = indexableRoutes.map((r) => r.path as string);
+    expect(indexable.some((p) => p.startsWith("/app"))).toBe(false);
+    const robots = (await import("@/app/robots")).default();
+    const rules = Array.isArray(robots.rules) ? robots.rules[0] : robots.rules;
+    expect(rules.disallow).toEqual(expect.arrayContaining(["/app", "/auth"]));
   });
 });
 

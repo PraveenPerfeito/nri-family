@@ -5,18 +5,19 @@ import type { AnalyticsEvent } from "@/lib/analytics/events";
 import { cn } from "@/lib/utils/cn";
 
 /**
- * Four button styles for the whole site:
+ * Five button styles for the whole site:
  *  - primary:   the one action we want (Get Started, submit)
  *  - secondary: a supporting action (Explore Services)
  *  - quiet:     low-emphasis utility action (header Login)
  *  - ghost:     inline/tertiary links with an arrow
+ *  - danger:    confirming a destructive step (portal dialogs only)
  * `tone="night"` adapts each style for dark bands.
  *
  * There is no class-merging step, so callers must not pass classes that
  * compete with these (e.g. another `display` or `px-*`). Use a variant
  * prefix instead (`max-sm:hidden`, `max-sm:px-3`), which always wins.
  */
-export type ButtonVariant = "primary" | "secondary" | "quiet" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "quiet" | "ghost" | "danger";
 export type ButtonSize = "md" | "lg";
 type Tone = "light" | "night";
 
@@ -34,12 +35,14 @@ const variants: Record<Tone, Record<ButtonVariant, string>> = {
     secondary: "bg-surface text-ink border border-line-strong hover:border-ink/35 hover:-translate-y-px hover:shadow-card",
     quiet: "text-ink-muted hover:text-ink hover:bg-subtle",
     ghost: "text-brand hover:text-brand-strong underline-offset-4 hover:underline px-0 h-auto",
+    danger: "bg-danger text-white hover:bg-danger/90",
   },
   night: {
     primary: "bg-white text-night hover:bg-brand-soft hover:-translate-y-px",
     secondary: "border border-night-line text-night-text hover:border-night-muted hover:bg-night-raised",
     quiet: "text-night-muted hover:text-white hover:bg-night-raised",
     ghost: "text-brand-muted hover:text-white underline-offset-4 hover:underline px-0 h-auto",
+    danger: "bg-danger text-white hover:bg-danger/90",
   },
 };
 

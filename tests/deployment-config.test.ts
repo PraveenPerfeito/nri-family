@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import nextConfig from "../next.config";
 import { resolveSiteUrl, siteConfig, whatsappLink } from "@/config/site";
+import { sessionCookieOptions } from "@/lib/supabase/config";
 
 /*
  * Deployment behaviour. Public settings live in src/config/site.ts (no hosting
@@ -38,6 +39,39 @@ describe("whatsappLink", () => {
     const url = new URL(siteConfig.contact.whatsappUrl!);
     expect(url.origin + url.pathname).toBe(whatsappLink(siteConfig.contact.whatsapp));
     expect(url.searchParams.get("text")).toContain(siteConfig.name);
+  });
+});
+
+describe("private workspace headers", () => {
+  it("always sends noindex and no-store for /app and /auth", async () => {
+    const rules = (await nextConfig.headers?.()) ?? [];
+    for (const source of ["/app", "/app/:path*", "/auth/:path*"]) {
+      const rule = rules.find((r) => r.source === source);
+      expect(rule, source).toBeDefined();
+      expect(rule!.headers).toEqual(expect.arrayContaining([{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Cache-Control", value: "private, no-store" }]));
+    }
+  });
+});
+
+describe("customer portal connection", () => {
+  const { supabaseUrl, supabasePublishableKey } = siteConfig.portal;
+
+  it("is either fully configured or off", () => {
+    expect(Boolean(supabaseUrl)).toBe(Boolean(supabasePublishableKey));
+  });
+
+  it("uses HTTPS (plain HTTP only for a local development stack)", () => {
+    if (!supabaseUrl) return;
+    expect(supabaseUrl.startsWith("https://") || /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?$/.test(supabaseUrl)).toBe(true);
+  });
+
+  it("sets session cookies HttpOnly and SameSite=Lax, and Secure on HTTPS", () => {
+    expect(sessionCookieOptions).toEqual({ httpOnly: true, sameSite: "lax", secure: siteConfig.url.startsWith("https://") });
+  });
+
+  it("uses a publishable key — never a secret or service-role key", () => {
+    if (!supabasePublishableKey) return;
+    expect(supabasePublishableKey).toMatch(/^sb_publishable_[\w-]+$/);
   });
 });
 

@@ -16,7 +16,9 @@
  *
  * Checks every route at every target viewport for horizontal overflow and
  * console errors, then per-route SEO, links, images, headings, and the
- * interactive flows (skip link, mobile menu, FAQ, forms).
+ * interactive flows (skip link, mobile menu, FAQ, forms). The private
+ * workspace is checked signed out only (redirects, noindex, no-store); the
+ * signed-in portal journey is scripts/portal-e2e.mjs.
  */
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
@@ -57,7 +59,10 @@ if (WEBHOOK_PORT) {
 const sitemap = await (await fetch(`${BASE}/sitemap.xml`)).text();
 const siteOrigin = sitemap.match(/<loc>(https?:\/\/[^/<]+)/)?.[1];
 const routes = [...sitemap.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname);
-routes.push("/login", "/register");
+// Account pages are deliberately left out of the sitemap (noindex); the
+// private workspace (/app) is checked separately below, signed out.
+const accountRoutes = ["/login", "/register", "/forgot-password", "/reset-password"];
+routes.push(...accountRoutes);
 console.log(`QA: ${routes.length} routes × ${VIEWPORTS.length} viewports against ${BASE} (${CHANNEL})`);
 
 const engines = { chromium, firefox, webkit };
@@ -168,7 +173,7 @@ for (const route of routes) {
     };
   });
 
-  const expectIndexed = !["/login", "/register"].includes(route);
+  const expectIndexed = !accountRoutes.includes(route);
   if (info.h1 !== 1) fail(`${label}: expected 1 <h1>, found ${info.h1}`);
   else ok();
   for (let i = 1; i < info.headings.length; i++) {
@@ -222,6 +227,29 @@ for (const asset of ["/robots.txt", "/sitemap.xml", "/opengraph-image", "/icon.s
 }
 const redirect = await fetch(`${BASE}/security`, { redirect: "manual" });
 if (![301, 308].includes(redirect.status) || !redirect.headers.get("location")?.endsWith("/trust")) fail("/security should redirect to /trust");
+
+// Private workspace: signed-out visitors are sent to sign-in, and nothing
+// under /app is indexable or cacheable.
+for (const path of ["/app", "/app/properties", "/app/requests/new", "/app/notifications"]) {
+  const res = await fetch(BASE + path, { redirect: "manual" });
+  const location = res.headers.get("location") ?? "";
+  if (![303, 307, 308].includes(res.status) || new URL(location, BASE).pathname !== "/login") fail(`${path}: signed-out visit should redirect to /login (got ${res.status} ${location})`);
+  else ok();
+  if (!res.headers.get("x-robots-tag")?.includes("noindex")) fail(`${path}: missing X-Robots-Tag: noindex`);
+  else ok();
+  if (!res.headers.get("cache-control")?.includes("no-store")) fail(`${path}: redirect should not be cacheable`);
+  else ok();
+}
+const robotsTxt = await (await fetch(`${BASE}/robots.txt`)).text();
+for (const path of ["/app", "/auth"]) {
+  if (!robotsTxt.split("\n").some((line) => line.trim() === `Disallow: ${path}`)) fail(`robots.txt should disallow ${path}`);
+  else ok();
+}
+if (/<loc>[^<]*\/(app|auth|login|register|forgot-password|reset-password)(\/|<)/.test(sitemap)) fail("sitemap lists private or account pages");
+else ok();
+await page.goto(`${BASE}/app/requests`, { waitUntil: "networkidle" });
+if (new URL(page.url()).pathname !== "/login") fail(`browser: /app/requests signed out ended on ${page.url()}, expected /login`);
+else ok();
 const headers = (await fetch(BASE)).headers;
 for (const h of ["content-security-policy", "x-content-type-options", "referrer-policy", "x-frame-options", "permissions-policy"]) {
   if (!headers.get(h)) fail(`missing security header ${h}`);

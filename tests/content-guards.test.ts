@@ -82,4 +82,33 @@ describe("no secrets in client-reachable code", () => {
     const hits = sources.filter((f) => f.text.includes("LEADS_WEBHOOK")).map((f) => f.path.replace(/\\/g, "/"));
     expect(hits).toEqual(["src/lib/leads/delivery.ts"]);
   });
+
+  it("never uses the Supabase service-role (secret) key", () => {
+    // It bypasses Row Level Security. The app works only as the signed-in
+    // customer; the key belongs in scripts and the Supabase dashboard.
+    const hits = sources.filter((f) => /SERVICE_ROLE|SUPABASE_SECRET|sb_secret_|eyJ[\w-]{20,}\.eyJ[\w-]{20,}/.test(f.text)).map((f) => f.path);
+    expect(hits).toEqual([]);
+  });
+
+  it("creates Supabase clients only in src/lib/supabase", () => {
+    const hits = sources
+      .filter((f) => /import\s*\{[^}]*\bcreate(Server|Browser)?Client\b[^}]*\}\s*from\s*["']@supabase\//.test(f.text))
+      .map((f) => f.path.replace(/\\/g, "/"))
+      .filter((path) => !path.startsWith("src/lib/supabase/"));
+    expect(hits).toEqual([]);
+  });
+});
+
+describe("the customer portal shows only the customer's own data", () => {
+  const portalFiles = sources.filter((f) => /^src[\\/](app[\\/]\(portal\)|components[\\/]portal|lib[\\/]portal)[\\/]/.test(f.path));
+
+  it("found the portal files", () => {
+    expect(portalFiles.length).toBeGreaterThan(20);
+  });
+
+  it("never imports sample data, product previews or marketing sections", () => {
+    const sampleSources = /from\s+["']@\/(data\/|components\/(product-preview|marketing|property|trust)\b)/;
+    const hits = portalFiles.filter((f) => sampleSources.test(f.text) || /\bDemoLabel\b/.test(f.text)).map((f) => f.path);
+    expect(hits).toEqual([]);
+  });
 });
