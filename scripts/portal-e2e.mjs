@@ -225,7 +225,7 @@ try {
   });
 
   await step('4. Add "Chennai House"', async () => {
-    await page.getByRole("link", { name: "Add property" }).first().click();
+    await page.getByRole("link", { name: "Add your first property" }).click();
     await page.waitForURL(`${BASE}/app/properties/new`);
     await page.locator("#name").fill("Chennai House");
     await page.locator("#propertyType").selectOption("HOUSE");

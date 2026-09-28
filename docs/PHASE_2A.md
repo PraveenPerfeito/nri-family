@@ -180,6 +180,22 @@ The team updates a request in **Table Editor → service_requests** by changing 
 
 The triggers add the timeline event and the activity entry, and notify the customer. For "Waiting for you", the request page tells the customer the team will contact them using their profile details. Replying in the portal is not built yet.
 
+## Service request lifecycle
+
+| Status | Set by | Customer sees | Written automatically |
+| --- | --- | --- | --- |
+| `SUBMITTED` | The customer, on submit | "Submitted"; next steps from Team review on | Event "Request submitted", `REQUEST_CREATED` activity, notification "Your service request has been received." |
+| `UNDER_REVIEW` | The team | "Under review" | Event "Team review started", activity, notification "Update on REQ-…" |
+| `ASSIGNED` | The team | "Assigned" | Event "Local team assigned", activity, notification |
+| `IN_PROGRESS` | The team | "In progress" | Event "Work in progress", activity, notification |
+| `WAITING_FOR_CUSTOMER` | The team | "Waiting for you", plus a note that the team will get in touch | Event "Waiting for your input", activity, notification |
+| `COMPLETED` | The team | "Completed"; no next steps | Event "Request completed", activity, notification |
+| `CANCELLED` | The customer (only from `SUBMITTED` or `UNDER_REVIEW`) | "Cancelled" | Event "Request cancelled", `REQUEST_CANCELLED` activity (no notification: they did it) |
+
+- **The timeline shows only these real events.** Stages that haven't happened are listed separately as "Next steps", never styled as done.
+- **A "waiting for you" pause** keeps the request's place in the stages.
+- **In Phase 2A the team changes statuses in the Supabase dashboard** ([how](#working-a-request-until-the-operations-console-exists)). The operations console (Phase 2B) will do the same through the same triggers.
+
 ## Running it locally
 
 - **Without any Supabase project** (this machine has no Docker): `npm run dev:supabase` starts [scripts/local-supabase.mjs](../scripts/local-supabase.mjs) on port 54321.
@@ -278,9 +294,31 @@ Intentionally out of scope, and not stubbed:
 - inspection reports and photos;
 - family access and sharing;
 - property health scores;
+- scheduled visits and inspections;
 - the marketplace.
 
 The property page lists some of these as "Coming to the platform".
+
+The prompt's sample dashboard showed a health score ("92 / 100") and an "Upcoming: Next inspection" panel. Neither is shown, because nothing in Phase 2A produces that data, and the portal must not show invented data (§19, §51). They arrive with inspections and service reports (Phase 2D).
+
+## Future phases (not started)
+
+| Phase | Scope |
+| --- | --- |
+| 2B | Admin operations: request queue, statuses, internal notes, staff roles with MFA |
+| 2C | Vendor operations |
+| 2D | Evidence and service reports: photos, visit reports |
+| 2E | Approvals and payments |
+| 2F | Documents |
+| 2G | Rental management |
+| 2H | Property transactions |
+| 3 | The full operations ERP |
+
+The schema is ready for them without a rewrite:
+- roles exist on profiles;
+- timeline events have `INTERNAL` visibility and a `CUSTOMER_COMMENT` type;
+- activity entries separate the actor from the workspace;
+- notifications and activity reference entities by type and id.
 
 ## Recommended next step
 

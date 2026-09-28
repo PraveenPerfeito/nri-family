@@ -51,10 +51,10 @@ export default async function DashboardPage(props: PageProps<"/app">) {
           <ol className="mt-4 grid gap-3 sm:grid-cols-2">
             <li className="rounded-control border border-line-subtle bg-canvas p-4">
               <p className="text-xs font-semibold text-brand tabular-nums">01</p>
-              <p className="mt-1 font-semibold tracking-tight text-ink">Add your first property</p>
+              <p className="mt-1 font-semibold tracking-tight text-ink">Start with a property</p>
               <p className="mt-1 text-sm text-ink-muted">A house, apartment or plot in Tamil Nadu. Its details stay private to you.</p>
               <ButtonLink href={portalRoutes.newProperty} className="mt-4" arrow>
-                Add property
+                Add your first property
               </ButtonLink>
             </li>
             <li className="rounded-control border border-line-subtle bg-canvas p-4">
