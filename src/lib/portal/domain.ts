@@ -118,4 +118,5 @@ export const activityLabels: Record<string, string> = {
   REQUEST_CREATED: "Service request created",
   REQUEST_CANCELLED: "Service request cancelled",
   REQUEST_STATUS_CHANGED: "Service request updated",
+  TEAM_UPDATE_POSTED: "Update from our team",
 };

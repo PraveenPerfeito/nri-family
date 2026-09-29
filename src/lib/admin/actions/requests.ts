@@ -8,7 +8,7 @@ import { toFieldErrors } from "@/lib/validation/leads";
 import type { AdminFunctionName } from "@/types/database";
 import { adminStatusLabels, canAdminTransition } from "../domain";
 import { logAdminError, requireAdmin, type AdminViewer } from "../session";
-import { statusChangeSchema } from "../validation";
+import { assignSchema, customerUpdateSchema, internalNoteSchema, requestRefSchema, statusChangeSchema } from "../validation";
 
 /*
  * Request operations for the admin console. Each action:
@@ -61,4 +61,44 @@ export async function changeRequestStatusAction(_prev: ActionState, formData: Fo
 
   const failed = await run(admin, "admin_change_request_status", { p_request_id: requestId, p_expected_status: expectedStatus, p_new_status: newStatus }, requestId);
   return failed ?? saved(requestId, `Status changed to ${adminStatusLabels[newStatus]}. The customer can see the update and has been notified.`);
+}
+
+export async function assignRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin(adminRoutes.requests);
+  const parsed = assignSchema.safeParse(formFields(formData, ["requestId", "assigneeId"]));
+  if (!parsed.success) return { status: "error", message: CHECK_FIELDS, fieldErrors: toFieldErrors(parsed.error) };
+  const { requestId, assigneeId } = parsed.data;
+
+  const failed = await run(admin, "admin_assign_request", { p_request_id: requestId, p_assignee_id: assigneeId }, requestId);
+  return failed ?? saved(requestId, "Assignment saved. Only the team can see who is responsible.");
+}
+
+export async function unassignRequestAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin(adminRoutes.requests);
+  const parsed = requestRefSchema.safeParse(formFields(formData, ["requestId"]));
+  if (!parsed.success) return { status: "error", message: messages.request_not_found };
+  const { requestId } = parsed.data;
+
+  const failed = await run(admin, "admin_unassign_request", { p_request_id: requestId }, requestId);
+  return failed ?? saved(requestId, "Assignment removed.");
+}
+
+export async function addInternalNoteAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin(adminRoutes.requests);
+  const parsed = internalNoteSchema.safeParse(formFields(formData, ["requestId", "body"]));
+  if (!parsed.success) return { status: "error", message: CHECK_FIELDS, fieldErrors: toFieldErrors(parsed.error) };
+  const { requestId, body } = parsed.data;
+
+  const failed = await run(admin, "admin_add_internal_note", { p_request_id: requestId, p_body: body }, requestId);
+  return failed ?? saved(requestId, "Internal note added. Only the team can see it.");
+}
+
+export async function postCustomerUpdateAction(_prev: ActionState, formData: FormData): Promise<ActionState> {
+  const admin = await requireAdmin(adminRoutes.requests);
+  const parsed = customerUpdateSchema.safeParse(formFields(formData, ["requestId", "body"]));
+  if (!parsed.success) return { status: "error", message: CHECK_FIELDS, fieldErrors: toFieldErrors(parsed.error) };
+  const { requestId, body } = parsed.data;
+
+  const failed = await run(admin, "admin_post_customer_update", { p_request_id: requestId, p_body: body }, requestId);
+  return failed ?? saved(requestId, "Update sent. The customer can see it on their request and has been notified.");
 }

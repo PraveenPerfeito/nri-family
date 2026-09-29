@@ -67,7 +67,7 @@ export async function getDashboard(viewer: Viewer) {
       .in("status", openRequestStatuses)
       .order("created_at", { ascending: false })
       .returns<RequestSummary[]>(),
-    supabase.from("activity_logs").select("*").eq("customer_id", profile.id).order("created_at", { ascending: false }).limit(5),
+    supabase.from("activity_logs").select("*").eq("customer_id", profile.id).eq("visibility", "CUSTOMER").order("created_at", { ascending: false }).limit(5),
     openRequestCounts(viewer),
   ]);
   if (propertyCount.error) must({ data: null, error: propertyCount.error }, "property count", viewer);
@@ -128,6 +128,7 @@ export async function getPropertyDetail(viewer: Viewer, id: string) {
       .from("activity_logs")
       .select("*")
       .eq("customer_id", viewer.profile.id)
+      .eq("visibility", "CUSTOMER")
       .or(`and(entity_type.eq.PROPERTY,entity_id.eq.${property.id}),metadata->>property_id.eq.${property.id}`)
       .order("created_at", { ascending: false })
       .limit(20),
@@ -166,7 +167,7 @@ export async function getRequest(viewer: Viewer, id: string): Promise<RequestDet
   if (result.error) must({ data: null, error: result.error }, "request", viewer);
   if (!result.data) return null;
   const events = must(
-    await viewer.supabase.from("service_request_events").select("*").eq("request_id", id).order("created_at", { ascending: true }),
+    await viewer.supabase.from("service_request_events").select("*").eq("request_id", id).eq("visibility", "CUSTOMER").order("created_at", { ascending: true }),
     "request timeline",
     viewer,
   );
@@ -181,6 +182,7 @@ export async function listActivity(viewer: Viewer, page: number) {
     .from("activity_logs")
     .select("*", { count: "exact" })
     .eq("customer_id", viewer.profile.id)
+    .eq("visibility", "CUSTOMER")
     .order("created_at", { ascending: false })
     .range(from, from + PAGE_SIZE - 1);
   return { entries: must(result, "activity", viewer) as ActivityLog[], total: result.count ?? 0 };

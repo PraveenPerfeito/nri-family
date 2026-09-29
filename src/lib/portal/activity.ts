@@ -57,6 +57,7 @@ export function describeActivity(entry: ActivityLog): ActivityLine {
       return { title, detail: text(m.name), kind: entry.entity_type };
     case "REQUEST_CREATED":
     case "REQUEST_CANCELLED":
+    case "TEAM_UPDATE_POSTED":
       return { title, detail: requestRef || undefined, href: entry.entity_id ? portalRoutes.request(entry.entity_id) : undefined, kind: entry.entity_type };
     case "REQUEST_STATUS_CHANGED": {
       const to = text(m.to) as RequestStatus | undefined;

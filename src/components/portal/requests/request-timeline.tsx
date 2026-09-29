@@ -1,4 +1,4 @@
-import { Check, Circle, XCircle } from "lucide-react";
+import { Check, Circle, MessageSquare, XCircle } from "lucide-react";
 import type { RequestStatus, ServiceRequestEvent } from "@/lib/portal/domain";
 import { upcomingStages } from "@/lib/portal/domain";
 import { formatDateTime } from "@/lib/portal/format";
@@ -7,7 +7,9 @@ import { cn } from "@/lib/utils/cn";
 /**
  * The request timeline. "What happened" comes only from real events in the
  * database; stages that haven't happened are listed separately as next
- * steps and never styled as done.
+ * steps and never styled as done. Updates written by the team are shown as
+ * messages. Internal notes never reach this component: the query asks for
+ * customer-visible events and the database refuses anything else.
  */
 export function RequestTimeline({ events, status, timezone }: { events: ServiceRequestEvent[]; status: RequestStatus; timezone: string | null }) {
   const upcoming = upcomingStages(status, events);
@@ -17,6 +19,7 @@ export function RequestTimeline({ events, status, timezone }: { events: ServiceR
       <ol aria-label="What has happened" className="space-y-0">
         {events.map((event, i) => {
           const cancelled = event.event_type === "STATUS_CHANGED" && (event.metadata as { to?: string }).to === "CANCELLED";
+          const message = event.event_type === "TEAM_UPDATE";
           const last = i === events.length - 1;
           return (
             <li key={event.id} className="relative grid grid-cols-[2rem_minmax(0,1fr)] gap-x-3 pb-5 last:pb-0">
@@ -28,17 +31,25 @@ export function RequestTimeline({ events, status, timezone }: { events: ServiceR
                   cancelled ? "border-line-strong bg-subtle text-ink-muted" : "border-brand/30 bg-brand-soft text-brand",
                 )}
               >
-                {cancelled ? <XCircle className="size-4" strokeWidth={2} /> : <Check className="size-4" strokeWidth={2.5} />}
+                {cancelled ? (
+                  <XCircle className="size-4" strokeWidth={2} />
+                ) : message ? (
+                  <MessageSquare className="size-4" strokeWidth={2} />
+                ) : (
+                  <Check className="size-4" strokeWidth={2.5} />
+                )}
               </span>
               <div className="pt-1">
                 <p className="text-sm font-semibold text-ink">
                   {event.title}
-                  <span className="sr-only"> — done</span>
+                  {message ? null : <span className="sr-only"> — done</span>}
                 </p>
                 <p className="mt-0.5 text-xs text-ink-subtle">
                   <time dateTime={event.created_at}>{formatDateTime(event.created_at, timezone)}</time>
                 </p>
-                {event.description ? <p className="mt-1 text-sm text-ink-muted">{event.description}</p> : null}
+                {event.description ? (
+                  <p className={cn("mt-1 text-sm break-words", message ? "whitespace-pre-line text-ink" : "text-ink-muted")}>{event.description}</p>
+                ) : null}
               </div>
             </li>
           );

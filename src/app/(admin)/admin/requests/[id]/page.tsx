@@ -3,15 +3,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AdminActivityList } from "@/components/admin/lists";
 import { AdminTimeline } from "@/components/admin/requests/admin-timeline";
+import { AssignmentForm } from "@/components/admin/requests/assignment-form";
+import { NoteForm } from "@/components/admin/requests/note-form";
 import { StatusForm } from "@/components/admin/requests/status-form";
 import { AdminStatusBadge, Breadcrumbs } from "@/components/admin/ui";
 import { DetailList, PageHeader, Panel, PropertyStatusBadge } from "@/components/portal/ui/primitives";
 import { Badge } from "@/components/ui/badge";
 import { adminRoutes } from "@/config/routes";
 import { getAdminRequest, teamNames } from "@/lib/admin/data";
+import type { TeamRole } from "@/lib/admin/domain";
 import { requireAdmin } from "@/lib/admin/session";
 import { labelOf, ownershipTypes, propertyTypes, requestCategories } from "@/lib/portal/domain";
-import { formatDateTime, formatTime, zoneOf } from "@/lib/portal/format";
+import { formatDate, formatDateTime, formatTime, zoneOf } from "@/lib/portal/format";
 import { countryName } from "@/lib/portal/places";
 import { isUuid } from "@/lib/portal/validation";
 
@@ -22,7 +25,7 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
   const admin = await requireAdmin(isUuid(id) ? adminRoutes.request(id) : adminRoutes.requests);
   const [detail, names] = await Promise.all([getAdminRequest(admin, id), teamNames(admin)]);
   if (!detail) notFound();
-  const { request, inbox, customer, property, otherProperties, events, activity } = detail;
+  const { request, inbox, customer, property, otherProperties, events, activity, team } = detail;
   const tz = admin.profile.timezone;
   const customerName = customer?.full_name ?? inbox.customer_name;
   const address = property ? [property.address_line_1, property.address_line_2].filter(Boolean).join(", ") : "";
@@ -72,6 +75,15 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
               Now: <AdminStatusBadge status={request.status} />
             </div>
             <StatusForm requestId={request.id} current={request.status} hasAssignee={Boolean(inbox.assignee_id)} customerName={customerName} />
+          </Panel>
+
+          <Panel title="Assignment" labelledBy="assignment">
+            <AssignmentForm
+              requestId={request.id}
+              status={request.status}
+              assignee={inbox.assignee_id ? { id: inbox.assignee_id, name: inbox.assignee_name ?? "Former team member", since: inbox.assigned_at ? formatDate(inbox.assigned_at, tz) : "" } : null}
+              team={team.map((m) => ({ id: m.profile_id, name: m.full_name, role: m.role as TeamRole, open: m.open_assigned_count }))}
+            />
           </Panel>
 
           <Panel
@@ -146,6 +158,15 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
           <Panel title="Timeline" labelledBy="timeline">
             <AdminTimeline events={events} timezone={tz} />
+          </Panel>
+
+          <Panel title="Add to the timeline" labelledBy="add">
+            <div className="space-y-6">
+              <NoteForm requestId={request.id} kind="internal" customerName={customerName} />
+              <div className="border-t border-line-subtle pt-6">
+                <NoteForm requestId={request.id} kind="customer" customerName={customerName} />
+              </div>
+            </div>
           </Panel>
 
           <Panel title="Activity on this request" labelledBy="activity">

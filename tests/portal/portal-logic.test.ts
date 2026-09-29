@@ -151,4 +151,9 @@ describe("activity lines", () => {
   it("do not link to a deleted property", () => {
     expect(describeActivity(entry("PROPERTY_DELETED", { name: "Old Plot" })).href).toBeUndefined();
   });
+
+  it("show a team update with a link to its request", () => {
+    const line = describeActivity(entry("TEAM_UPDATE_POSTED", { request_number: "REQ-000007", title: "Security check" }, "SERVICE_REQUEST"));
+    expect(line).toMatchObject({ title: "Update from our team", detail: "REQ-000007 · Security check", href: "/app/requests/44444444-4444-4444-8444-444444444444" });
+  });
 });
