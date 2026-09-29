@@ -2,7 +2,7 @@
 
 The team's side of the platform: one place to see every service request, review it, make someone responsible, move it along, keep internal notes and send updates to the customer. It replaces the Supabase dashboard for everyday request work. It is built on Phase 2A ([PHASE_2A.md](PHASE_2A.md)) in the same app, on the same database.
 
-**Status (29 Sept 2026).** Live at https://nri-family.vercel.app/admin. The first two Phase 2B migrations are applied to the Supabase project `epqwcpckltrnhzmegtyq`, the app is deployed from `main`, and the first admin account is set up. The acceptance tests pass against the live site and the real database in Edge, Firefox and WebKit ([Tests](#13-tests)). **Pending:** the third migration, `20260929110000_phase_2b_assignment_rules.sql` (two assignment rules found in the production audit), is written and tested but not yet active in production ([Deployment steps](#14-deployment-steps)).
+**Status (29 Sept 2026).** Live at https://nri-family.vercel.app/admin. All three Phase 2B migrations are applied to the Supabase project `epqwcpckltrnhzmegtyq`, including `20260929110000_phase_2b_assignment_rules.sql` from the production audit. The app is deployed from `main`, and the first admin account is set up. The acceptance tests and the production security probe pass against the live site and the real database ([Tests](#13-tests)).
 
 ## 1. Purpose
 
@@ -96,7 +96,7 @@ Three new, additive migrations. The Phase 2A migration is unchanged, and the liv
 
 - [20260929090000_phase_2b_admin_operations.sql](../supabase/migrations/20260929090000_phase_2b_admin_operations.sql): everything below except the two list views. Applied in production on 29 Sept 2026.
 - [20260929100000_phase_2b_admin_list_views.sql](../supabase/migrations/20260929100000_phase_2b_admin_list_views.sql): the views `admin_request_inbox` and `admin_activity_feed`, added after the first file was applied (an applied migration is never edited).
-- [20260929110000_phase_2b_assignment_rules.sql](../supabase/migrations/20260929110000_phase_2b_assignment_rules.sql): hardening from the production audit. `admin_unassign_request` now refuses closed requests, and Assigned / In progress need an *active* assignee (section 9). **Not yet active in production** as of 29 Sept 2026: until it is, an admin calling the database directly (not through the console) could still remove a closed request's assignee, or move a request with a deactivated assignee to Assigned or In progress. The console itself doesn't offer either.
+- [20260929110000_phase_2b_assignment_rules.sql](../supabase/migrations/20260929110000_phase_2b_assignment_rules.sql): hardening from the production audit. `admin_unassign_request` now refuses closed requests, and Assigned / In progress need an *active* assignee (section 9). Active in production since 29 Sept 2026 (verified by the production probe).
 
 | Change | Detail |
 | --- | --- |
@@ -298,7 +298,7 @@ npm run qa:admin       # Phase 2B acceptance test (reads .env.local)
 - internal notes and customer isolation in both directions;
 - notification counts, activity integrity, and RLS for anonymous, customer and admin readers.
 
-Everything passed except the two rules `20260929110000` adds, which the live database doesn't enforce until that migration is applied. The audit also removed leftover test accounts from interrupted runs; the real accounts and records were verified unchanged.
+After `20260929110000` was applied: **274/274 checks passed.** Before it, only the two rules it adds failed. The audit also removed leftover test accounts from interrupted runs; the real accounts and records were verified unchanged.
 
 Notes from the live runs:
 
@@ -307,7 +307,7 @@ Notes from the live runs:
 
 ## 14. Deployment steps
 
-**Production (29 Sept 2026):** steps 1–6 are done for the first two migrations: they are applied, the app is deployed, the first admin is set up, and the live acceptance tests pass. **`20260929110000_phase_2b_assignment_rules.sql` still needs step 1**, then step 7.
+**Production (29 Sept 2026):** steps 1–6 are done for all three migrations: they are applied, the app is deployed, the first admin is set up, and the live acceptance tests pass. Step 7 (the full schema fingerprint) is optional; the production probe already verifies the behaviour.
 
 Order matters. The new app code reads columns and views the migrations add, so apply them **first**. The live Phase 2A app works unchanged on the new schema.
 
@@ -324,7 +324,7 @@ Order matters. The new app code reads columns and views the migrations add, so a
 5. **Sign in** at `/login`. You land on `/admin`.
 6. **Verify** with `npm run qa:admin` against the live site: set `BASE_URL=https://nri-family.vercel.app` (the other values come from `.env.local`). It creates and deletes its own four test accounts. The customer accounts are created the team's way, so no email is sent.
 
-7. **Confirm production matches the repository.** Run `scripts/sql/schema-fingerprint.sql` in the SQL editor (read-only) and compare its 13 rows with `node scripts/schema-fingerprint.mjs`, which runs the same query on the repository's migrations locally. Equal hashes mean an identical schema: columns, constraints, indexes, triggers, policies, function bodies, views and grants. Different Postgres versions can render the same SQL slightly differently, so compare the `g functions` row first: function bodies are stored exactly as written.
+7. **Confirm production matches the repository.** Run `scripts/sql/schema-fingerprint.sql` in the SQL editor (read-only) and compare its 13 rows with `node scripts/schema-fingerprint.mjs`, which runs the same query on the repository's migrations locally. Equal hashes mean an identical schema: columns, constraints, indexes, triggers, policies, function bodies, views and grants. Expected differences (checked against production on 29 Sept 2026): production has one extra function, `public.rls_auto_enable()`. It is Supabase's own automatic-RLS event trigger (it switches RLS on for every new table in `public`, and can't be called through the API), so the `g functions` and `k function grants` rows differ by exactly that. The `d triggers` row differs only in how the email trigger is rendered, because the real `auth.users.email` is `varchar` rather than `text`. Every other row matched production exactly.
 
 **Rolling back.** The migrations are additive. To undo a bad release, redeploy the previous commit: the Phase 2A app runs on the Phase 2B schema. No database rollback is needed or provided (dropping the new tables would delete the team and assignment records).
 

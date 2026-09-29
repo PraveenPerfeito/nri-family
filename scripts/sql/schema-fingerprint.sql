@@ -18,6 +18,7 @@ cols as (
 cons as (
   select format('%s.%s:%s:%s', t.relname, co.conname, co.contype, pg_get_constraintdef(co.oid)) as e
   from pg_constraint co join tables t on t.oid = co.conrelid
+  where co.contype <> 'n' -- Postgres 18 also lists NOT NULL as constraints; columns already cover them
 ),
 idx as (
   select format('%s:%s', indexname, indexdef) as e from pg_indexes where schemaname in ('public', 'app')
@@ -37,7 +38,7 @@ rls as (
   select format('%s:%s:%s', relname, relrowsecurity, relforcerowsecurity) as e from tables where relkind in ('r', 'p')
 ),
 fns as (
-  select format('%s.%s(%s):%s:%s:%s:%s', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid), p.prosecdef, p.provolatile, coalesce(p.proconfig::text, ''), md5(p.prosrc)) as e
+  select format('%s.%s(%s):%s:%s:%s:%s', n.nspname, p.proname, pg_get_function_identity_arguments(p.oid), p.prosecdef, p.provolatile, coalesce(p.proconfig::text, ''), md5(replace(p.prosrc, chr(13), ''))) as e
   from pg_proc p join pg_namespace n on n.oid = p.pronamespace
   where n.nspname in ('public', 'app')
 ),
