@@ -1,13 +1,13 @@
 # Phase 2A: customer portal foundation (Layer 2)
 
-The private workspace where an NRI customer signs in, adds their Tamil Nadu properties, requests services and follows every step. This is the foundation only. There is no admin, vendor or partner portal yet (see [What is not built](#what-is-not-built-in-phase-2a)).
+The private workspace where an NRI customer signs in, adds their Tamil Nadu properties, requests services and follows every step. This is the foundation only. The team's admin console followed in Phase 2B ([PHASE_2B.md](PHASE_2B.md)); there is no vendor or partner portal yet (see [What is not built](#what-is-not-built-in-phase-2a)).
 
 **Status (28 Sept 2026).** Live and verified. The migration is applied to the Supabase project `epqwcpckltrnhzmegtyq`, and the site is connected to it in [src/config/site.ts](../src/config/site.ts) (the project URL and publishable key; both are public by design). The [acceptance test](#acceptance-test) passed 22/22 against that real project in Edge, Firefox and WebKit. Public sign-up stays closed (`customerSignupsOpen: false`) until auth emails go out from our own domain: add customers in Supabase under **Authentication → Users → Add user**, and they sign in at `/login`.
 
 ## What was built
 
 - **Accounts** on Supabase Auth. Customers register with email and password, confirm their email address, sign in and out, and can reset a forgotten password or change it in Settings.
-- **Every new account is a customer.** The roles `ADMIN`, `VENDOR` and `PARTNER` exist in the database but have no screens. Anyone who is not a customer is turned away from `/app`.
+- **Every new account is a customer.** The roles `ADMIN`, `VENDOR` and `PARTNER` exist in the database but have no screens in Phase 2A. Anyone who is not a customer is turned away from `/app` (since Phase 2B, active admins are sent to `/admin`).
 - **Dashboard** (`/app`). A time-of-day greeting, three counts (properties, open requests, waiting for you), the latest properties, requests that need attention, and recent activity. A new workspace shows a two-step "Set up your workspace" guide.
 - **Properties.** Add, view, edit and delete (only when the property has no requests). Each property page shows its requests and activity, plus the features coming later.
 - **Service requests.** A guided form with four steps (property, service, details, how soon) and a review before sending. Each request gets a number (`REQ-000001`) and starts as `SUBMITTED`. Its timeline shows only events that really happened, and stages still ahead appear as "Next steps". A customer can cancel a request until the team starts on it. The list filters by All, Open and Completed and is paginated.
@@ -90,7 +90,7 @@ Every table has CHECK constraints on its columns, foreign keys and indexes for t
 - **Passwords** are 10–72 characters and can't be the email address; Supabase stores them (bcrypt). Changing the password in Settings re-checks the current one first.
 - **Email links** use `token_hash` links to `/auth/confirm` (see [Email templates](#email-templates)), so they work on any device. Supabase's default `?code=` links work too, in the same browser. Links work once.
 - **No account enumeration.** Wrong-password messages never say which part was wrong. The password-reset and resend-confirmation forms give one answer for every outcome, including Supabase's email limit. That limit only triggers for existing accounts, so surfacing it would reveal who is a customer.
-- **Open-redirect protection.** `?next=` only accepts `/app…` and `/reset-password` ([src/lib/portal/redirects.ts](../src/lib/portal/redirects.ts)).
+- **Open-redirect protection.** `?next=` only accepts `/app…`, `/admin…` (since Phase 2B) and `/reset-password` ([src/lib/portal/redirects.ts](../src/lib/portal/redirects.ts)).
 - **Rate limits** per client address, in memory: sign-in 10 per 10 minutes, registration 5 per hour, reset and confirmation emails 5 per hour. Supabase applies its own limits on top.
 - **Registration switch.** `customerSignupsOpen` in site.ts shows or hides the form and must match Supabase's "Allow new users to sign up". Keep both off until auth emails go out from our own domain.
 
@@ -175,9 +175,9 @@ Five layers. Any one of them alone would stop another customer's data from showi
 | Reset password | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery&next=/reset-password` |
 | Invite user | `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/reset-password` (the invited person then chooses a password) |
 
-### Working a request (until the operations console exists)
+### Working a request in the Supabase dashboard (fallback)
 
-The team updates a request in **Table Editor → service_requests** by changing **only** `status`, one step at a time:
+Since Phase 2B the team works requests in the admin console at `/admin` ([PHASE_2B.md](PHASE_2B.md)), which enforces the allowed steps and records who made each change. If the console is unavailable, the team can update a request in **Table Editor → service_requests** by changing **only** `status`, one step at a time:
 
 `SUBMITTED` → `UNDER_REVIEW` → `ASSIGNED` → `IN_PROGRESS` → `COMPLETED`
 
@@ -199,7 +199,7 @@ The triggers add the timeline event and the activity entry, and notify the custo
 
 - **The timeline shows only these real events.** Stages that haven't happened are listed separately as "Next steps", never styled as done.
 - **A "waiting for you" pause** keeps the request's place in the stages.
-- **In Phase 2A the team changes statuses in the Supabase dashboard** ([how](#working-a-request-until-the-operations-console-exists)). The operations console (Phase 2B) will do the same through the same triggers.
+- **Since Phase 2B the team changes statuses in the admin console** at `/admin`, through the same triggers, and only along the allowed steps ([PHASE_2B.md](PHASE_2B.md#8-request-lifecycle)). The [Supabase dashboard](#working-a-request-in-the-supabase-dashboard-fallback) remains a fallback.
 
 ## Running it locally
 
@@ -291,7 +291,7 @@ None are needed on Vercel for the portal. Public settings live in site.ts.
 
 Intentionally out of scope, and not stubbed:
 
-- the admin ERP / operations console (Layer 3);
+- the admin ERP / operations console (Layer 3; its first slice came in Phase 2B);
 - vendor and professional-partner portals (Layers 4–5);
 - payments and billing;
 - WhatsApp, SMS and email notifications;
@@ -306,11 +306,11 @@ The property page lists some of these as "Coming to the platform".
 
 The prompt's sample dashboard showed a health score ("92 / 100") and an "Upcoming: Next inspection" panel. Neither is shown, because nothing in Phase 2A produces that data, and the portal must not show invented data (§19, §51). They arrive with inspections and service reports (Phase 2D).
 
-## Future phases (not started)
+## Future phases
 
 | Phase | Scope |
 | --- | --- |
-| 2B | Admin operations: request queue, statuses, internal notes, staff roles with MFA |
+| 2B | Admin operations: request queue, statuses, assignment, internal notes, customer updates. **Built** ([PHASE_2B.md](PHASE_2B.md)); staff MFA is still to do. |
 | 2C | Vendor operations |
 | 2D | Evidence and service reports: photos, visit reports |
 | 2E | Approvals and payments |
@@ -329,7 +329,7 @@ The schema is ready for them without a rewrite:
 
 First, connect the Supabase project and run the acceptance test against it. Then set up custom SMTP with the final domain, so customers can register and reset passwords.
 
-After that, **Phase 2B: the operations console** (the first slice of Layer 3), on the same database:
+After that, **Phase 2B: the operations console** (the first slice of Layer 3), on the same database. **Built on 29 Sept 2026: see [PHASE_2B.md](PHASE_2B.md).** The original plan was:
 
 - a staff role with MFA;
 - a request queue with status changes (the triggers already write the timeline and notifications);

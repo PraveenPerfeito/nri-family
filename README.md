@@ -4,7 +4,7 @@
 
 > **Branding is not confirmed.** "NRI Family Office" is a neutral working name. The final brand name and domain go in the settings block at the top of [src/config/site.ts](src/config/site.ts); the placeholder mark is in [src/components/layout/logo.tsx](src/components/layout/logo.tsx).
 
-Layer 1 of the Digital Family Office platform: the public marketing website for NRIs with property, assets and family in Tamil Nadu. Later layers (NRI Portal, Admin ERP, Vendor Portal, Professional Partner Portal) will be added to this same app. See [docs/phase-1/future-architecture.md](docs/phase-1/future-architecture.md).
+The Digital Family Office platform for NRIs with property, assets and family in Tamil Nadu. This app holds the public website (Layer 1), the customer portal foundation (`/app`, [docs/PHASE_2A.md](docs/PHASE_2A.md)) and the team's admin operations console (`/admin`, [docs/PHASE_2B.md](docs/PHASE_2B.md)). The vendor and partner portals will be added to this same app later. See [docs/phase-1/future-architecture.md](docs/phase-1/future-architecture.md).
 
 ## Stack
 
@@ -41,6 +41,8 @@ Forms work in development without configuration. Submissions are validated and l
 | `npm test` | Unit tests (validation, server actions, SEO, routes, content and brand guards) |
 | `npm run check` | lint + typecheck + test + build, which is the pre-merge gate |
 | `npm run qa` | Browser QA against a running server. See [docs/phase-1/testing.md](docs/phase-1/testing.md) |
+| `npm run dev:supabase` | Local Supabase stand-in for development (real migrations in PGlite). See [docs/PHASE_2A.md](docs/PHASE_2A.md) |
+| `npm run qa:portal` / `npm run qa:admin` | Customer portal / admin console acceptance tests in a real browser. See [docs/PHASE_2A.md](docs/PHASE_2A.md) and [docs/PHASE_2B.md](docs/PHASE_2B.md) |
 
 ## Project layout
 
@@ -48,7 +50,9 @@ Forms work in development without configuration. Submissions are validated and l
 src/
   app/
     (public)/        Layer 1 marketing pages (shared navbar + footer)
-    (auth)/          /login and /register entry points (Phase 2 placeholders)
+    (auth)/          Sign in, registration and password reset (Supabase Auth)
+    (portal)/app/    The customer portal (Phase 2A)
+    (admin)/admin/   The admin operations console (Phase 2B)
     sitemap.ts, robots.ts, opengraph-image.tsx, icon.svg, not-found.tsx
   components/
     ui/              Design-system primitives (Button, Badge, Card, Section)
@@ -58,13 +62,16 @@ src/
     property/        PropertyCard, InspectionReport
     forms/           Contact + Get Started forms, field primitives
     shared/          JSON-LD, FAQ, analytics listener
+    portal/, admin/  Customer portal and admin console UI
   config/            site, routes, navigation, services, form options
   data/              Marketing copy, FAQ and FICTIONAL demo data
-  lib/               seo, validation, leads (server actions), analytics, security
+  lib/               seo, validation, leads (server actions), analytics, security, supabase, portal, admin
   types/             Shared domain vocabulary (visibility, roles, request stages)
-tests/               Vitest unit tests
-scripts/qa.mjs       Browser quality gate
+supabase/migrations/ Database schema, RLS and triggers (Phase 2A, Phase 2B)
+tests/               Vitest unit tests (tests/db: the migrations in real Postgres)
+scripts/             Browser quality gate, acceptance tests, local Supabase stand-in
 docs/phase-1/        Product, IA, design system, routes, SEO, security, architecture, testing, spec compliance
+docs/PHASE_2A.md, docs/PHASE_2B.md  The customer portal and the admin console
 ```
 
 ## Ground rules

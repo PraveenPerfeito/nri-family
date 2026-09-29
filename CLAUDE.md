@@ -2,7 +2,7 @@
 
 # Project: NRI Family Office (Digital Family Office for NRIs in Tamil Nadu)
 
-Phase 1 = **Layer 1, the public website**. Phase 2A = **the foundation of Layer 2, the customer portal** (`/app`; see `docs/PHASE_2A.md`). Layers 3–5 (Admin ERP / operations console, Vendor Portal, Professional Partner Portal) and Phase 2B are planned but **must not be built** until explicitly requested. Don't add empty placeholder routes for them; a test enforces this. The plan is in `docs/phase-1/future-architecture.md`.
+Phase 1 = **Layer 1, the public website**. Phase 2A = **the foundation of Layer 2, the customer portal** (`/app`; see `docs/PHASE_2A.md`). Phase 2B = **the admin operations console** (`/admin`, the first slice of Layer 3; see `docs/PHASE_2B.md`). The Vendor Portal, Professional Partner Portal and Phase 2C onwards are planned but **must not be built** until explicitly requested. Don't add empty placeholder routes for them, or admin pages beyond `adminRoutes`; tests enforce both. The plan is in `docs/phase-1/future-architecture.md`.
 
 ## Branding is NOT confirmed
 
@@ -26,20 +26,22 @@ Phase 1 = **Layer 1, the public website**. Phase 2A = **the foundation of Layer 
 - `npm run qa`: browser QA against a running server (`scripts/qa.mjs`). Run `LEADS_WEBHOOK_URL=http://127.0.0.1:3199/leads npm start` first, then `QA_BROWSER=msedge|chrome|firefox|webkit npm run qa`.
 - `npm run dev:supabase`: local Supabase stand-in on :54321 (real migration + RLS in PGlite, emulated Auth/REST; development only). Start the app with `SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_PUBLISHABLE_KEY=sb_publishable_local_dev_only CUSTOMER_SIGNUPS_OPEN=true` (build and start with the same env).
 - `npm run qa:portal`: the Phase 2A acceptance test (`scripts/portal-e2e.mjs`; env at the top of the file). It creates and deletes two test customers.
+- `npm run qa:admin`: the Phase 2B acceptance test (`scripts/admin-e2e.mjs`): two customers, a temporary admin and an operations member, created and deleted by the script; includes the responsive and axe checks of every admin page.
 
 ## Stack and layout
 
 Next.js 16 (App Router, Turbopack; marketing pages static, portal pages dynamic), React 19, TypeScript strict, Tailwind v4, Zod, lucide-react, Supabase (`@supabase/ssr`, Auth + Postgres). Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md): request APIs are async, and `proxy.ts` replaces `middleware.ts`.
 
-- `src/app/(public)/`: marketing pages. `src/app/(auth)/`: `/login`, `/register`, `/forgot-password`, `/reset-password` (honest "coming" state while no Supabase project is connected). `src/app/auth/confirm`: email-link landing. `src/app/(portal)/app/`: the customer portal.
+- `src/app/(public)/`: marketing pages. `src/app/(auth)/`: `/login`, `/register`, `/forgot-password`, `/reset-password` (honest "coming" state while no Supabase project is connected). `src/app/auth/confirm`: email-link landing. `src/app/(portal)/app/`: the customer portal. `src/app/(admin)/admin/`: the admin console.
 - `src/proxy.ts` + `src/lib/supabase/`: session refresh and the only place Supabase clients are created (server only; there is no browser client, so session cookies are HttpOnly).
-- `src/lib/portal/`: `session.ts` (`requireCustomer`), `data.ts` (queries), `actions/` (Server Actions), `validation.ts`, `domain.ts`, `format.ts`. `src/components/portal/`: portal UI.
-- `supabase/migrations/`: the schema, RLS, grants and triggers. `tests/db/`: the migration tested for real in PGlite.
+- `src/lib/portal/`: `session.ts` (`requireCustomer`, `isActiveAdmin`), `data.ts` (queries), `actions/` (Server Actions), `validation.ts`, `domain.ts`, `format.ts`. `src/components/portal/`: portal UI.
+- `src/lib/admin/`: `session.ts` (`requireAdmin`), `data.ts` (queries on the admin views), `search.ts` (list URL parameters), `domain.ts` (the lifecycle table, labels), `validation.ts`, `activity.ts` (audit lines), `actions/` (Server Actions calling the `admin_*` functions). `src/components/admin/`: console UI.
+- `supabase/migrations/`: the schema, RLS, grants and triggers (2A, then 2B, additive). They are applied in the Supabase SQL editor, never with `supabase db push` (the project's CLI history is empty). `tests/db/`: the migrations tested for real in PGlite.
 - `src/config/`: `site.ts` (brand/contact/company from env), `routes.ts` (every route; drives nav, sitemap and tests), `navigation.ts`, `services.ts` (service copy), `leads.ts` (form options).
 - `src/data/`: `marketing.ts` (the **Available now / Coming** roadmap), `faq.ts`, `demo.ts` (fictional sample data only).
 - `src/lib/`: `seo/` (`pageMetadata`, JSON-LD), `validation/`, `leads/` (Server Actions + email relay / webhook delivery), `analytics/`, `security/`.
 - `src/components/marketing/home/`: the UI V2 homepage sections (hero + command center, radial ecosystem, services showcase, evidence timeline, privacy access diagram, family-office vision, dashboard, property control, journey).
-- `docs/phase-1/`: product, IA, design system, routes, SEO, security, architecture, testing, spec-compliance, ui-v2. `docs/PHASE_2A.md`: the portal (setup, security model, tests, limitations).
+- `docs/phase-1/`: product, IA, design system, routes, SEO, security, architecture, testing, spec-compliance, ui-v2. `docs/PHASE_2A.md`: the portal (setup, security model, tests, limitations). `docs/PHASE_2B.md`: the admin console (roles, lifecycle, RLS, deployment, limitations).
 
 ## Rules (from the master spec; trust is the product)
 
@@ -52,6 +54,7 @@ Next.js 16 (App Router, Turbopack; marketing pages static, portal pages dynamic)
 - **Auth:** real Supabase Auth only; never fake sign-in or account creation. Every new account is a CUSTOMER; roles are never set from user input.
 - **Portal data:** the portal shows only the signed-in customer's own records. No sample data, previews or marketing sections in `/app` (a test enforces this). Honest empty states instead.
 - **Portal security:** every portal page and Server Action calls `requireCustomer()` (never rely on the layout or the proxy); queries also filter by the customer's id; missing and someone else's records get the same "not found". The database is the last line: RLS on every table, column-level grants, and timeline / activity / notifications written only by triggers in the same transaction. Change the schema only with a new migration plus tests in `tests/db/`. Activity metadata holds field names, never values. Portal pages stay `noindex` and `no-store`.
+- **Admin security:** every admin layout, page and Server Action calls `requireAdmin()` (role `ADMIN` + an active `team_members` row; everyone else gets `notFound()`, and page titles don't reveal the console). Admin code never writes tables: changes go through the `admin_*` database functions, which re-check `app.is_admin()` (a test enforces this). The browser sends only ids and the admin's choices, never an actor, customer id or role. Admin reads go through RLS policies and `security_invoker` views gated by `app.is_admin()`: never `USING (true)`, never the service-role key. Internal notes and internal activity are `INTERNAL` by constraint; customer queries also filter `visibility = 'CUSTOMER'`. Keep `adminStatusTransitions` (domain.ts) identical to `app.admin_status_transition_allowed()`; a test compares them. Team membership is changed by the owner in SQL only (see `docs/PHASE_2B.md`). No deleting customers, properties or requests from the console.
 - **Copy:** simple, confident English; short sentences; no hype or fake urgency.
 
 ## Code conventions

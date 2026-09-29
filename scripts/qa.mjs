@@ -17,8 +17,9 @@
  * Checks every route at every target viewport for horizontal overflow and
  * console errors, then per-route SEO, links, images, headings, and the
  * interactive flows (skip link, mobile menu, FAQ, forms). The private
- * workspace is checked signed out only (redirects, noindex, no-store); the
- * signed-in portal journey is scripts/portal-e2e.mjs.
+ * workspace and the admin console are checked signed out only (redirects,
+ * noindex, no-store); the signed-in journeys are scripts/portal-e2e.mjs and
+ * scripts/admin-e2e.mjs.
  */
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
@@ -228,9 +229,9 @@ for (const asset of ["/robots.txt", "/sitemap.xml", "/opengraph-image", "/icon.s
 const redirect = await fetch(`${BASE}/security`, { redirect: "manual" });
 if (![301, 308].includes(redirect.status) || !redirect.headers.get("location")?.endsWith("/trust")) fail("/security should redirect to /trust");
 
-// Private workspace: signed-out visitors are sent to sign-in, and nothing
-// under /app is indexable or cacheable.
-for (const path of ["/app", "/app/properties", "/app/requests/new", "/app/notifications"]) {
+// Private workspace and admin console: signed-out visitors are sent to
+// sign-in, and nothing under /app or /admin is indexable or cacheable.
+for (const path of ["/app", "/app/properties", "/app/requests/new", "/app/notifications", "/admin", "/admin/requests", "/admin/customers", "/admin/activity"]) {
   const res = await fetch(BASE + path, { redirect: "manual" });
   const location = res.headers.get("location") ?? "";
   if (![303, 307, 308].includes(res.status) || new URL(location, BASE).pathname !== "/login") fail(`${path}: signed-out visit should redirect to /login (got ${res.status} ${location})`);
@@ -241,14 +242,17 @@ for (const path of ["/app", "/app/properties", "/app/requests/new", "/app/notifi
   else ok();
 }
 const robotsTxt = await (await fetch(`${BASE}/robots.txt`)).text();
-for (const path of ["/app", "/auth"]) {
+for (const path of ["/app", "/auth", "/admin"]) {
   if (!robotsTxt.split("\n").some((line) => line.trim() === `Disallow: ${path}`)) fail(`robots.txt should disallow ${path}`);
   else ok();
 }
-if (/<loc>[^<]*\/(app|auth|login|register|forgot-password|reset-password)(\/|<)/.test(sitemap)) fail("sitemap lists private or account pages");
+if (/<loc>[^<]*\/(app|admin|auth|login|register|forgot-password|reset-password)(\/|<)/.test(sitemap)) fail("sitemap lists private or account pages");
 else ok();
 await page.goto(`${BASE}/app/requests`, { waitUntil: "networkidle" });
 if (new URL(page.url()).pathname !== "/login") fail(`browser: /app/requests signed out ended on ${page.url()}, expected /login`);
+else ok();
+await page.goto(`${BASE}/admin/requests`, { waitUntil: "networkidle" });
+if (new URL(page.url()).pathname !== "/login") fail(`browser: /admin/requests signed out ended on ${page.url()}, expected /login`);
 else ok();
 const headers = (await fetch(BASE)).headers;
 for (const h of ["content-security-policy", "x-content-type-options", "referrer-policy", "x-frame-options", "permissions-policy"]) {

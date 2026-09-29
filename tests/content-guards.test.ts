@@ -112,3 +112,40 @@ describe("the customer portal shows only the customer's own data", () => {
     expect(hits).toEqual([]);
   });
 });
+
+describe("the admin console works on real records only, through the admin functions", () => {
+  const adminFiles = sources.filter((f) => /^src[\\/](app[\\/]\(admin\)|components[\\/]admin|lib[\\/]admin)[\\/]/.test(f.path));
+
+  it("found the admin files", () => {
+    expect(adminFiles.length).toBeGreaterThan(15);
+  });
+
+  it("never imports sample data, product previews or marketing sections", () => {
+    const sampleSources = /from\s+["']@\/(data\/|components\/(product-preview|marketing|property|trust)\b)/;
+    const hits = adminFiles.filter((f) => sampleSources.test(f.text) || /\bDemoLabel\b/.test(f.text)).map((f) => f.path);
+    expect(hits).toEqual([]);
+  });
+
+  it("never writes a table directly: every change goes through an admin database function", () => {
+    const hits = adminFiles.filter((f) => /\.(insert|update|upsert|delete)\s*\(/.test(f.text)).map((f) => f.path);
+    expect(hits).toEqual([]);
+  });
+
+  it("checks admin rights in every Server Action", () => {
+    const actionFiles = adminFiles.filter((f) => /^\s*["']use server["']/.test(f.text));
+    expect(actionFiles.length).toBeGreaterThan(0);
+    for (const file of actionFiles) {
+      const actions = file.text.split(/\nexport async function /).slice(1);
+      expect(actions.length, file.path).toBeGreaterThan(0);
+      for (const body of actions) expect(body.split("\n}\n")[0], `${file.path}: ${body.split("(")[0]}`).toContain("await requireAdmin(");
+    }
+  });
+
+  it("never sends who is acting, whose record it is, or a role from the browser", () => {
+    const actionFiles = adminFiles.filter((f) => /^\s*["']use server["']/.test(f.text));
+    for (const file of actionFiles) {
+      expect(file.text, file.path).not.toMatch(/formData\.get\(["'](customerId|customer_id|ownerId|owner_id|actorId|actor_id|role|profileId|profile_id)["']\)/);
+      expect(file.text, file.path).not.toMatch(/["'](customerId|customer_id|ownerId|owner_id|actorId|actor_id|role|profileId|profile_id)["']\s*[\],]/);
+    }
+  });
+});

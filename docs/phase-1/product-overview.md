@@ -14,8 +14,8 @@ The customer is not buying "maintenance". They are buying **trust**: the confide
 | Layer | Audience | Status |
 | --- | --- | --- |
 | 1. Public Website | Prospective customers, search engines | **Built in Phase 1** |
-| 2. NRI Portal | Customers and invited family members | Entry points only (`/login`, `/register`) |
-| 3. Admin ERP | Operations team | Not started |
+| 2. NRI Portal | Customers and invited family members | Foundation built in Phase 2A (`/app`; see [PHASE_2A.md](../PHASE_2A.md)) |
+| 3. Admin ERP | Operations team | First slice built in Phase 2B: the admin operations console (`/admin`; see [PHASE_2B.md](../PHASE_2B.md)) |
 | 4. Vendor Portal | Local service providers | Not started |
 | 5. Professional Partner Portal | Lawyers, auditors, other professionals | Not started |
 

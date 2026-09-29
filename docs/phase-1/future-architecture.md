@@ -1,6 +1,8 @@
 # Future architecture: Layers 2–5
 
-Phase 1 ships only the public website. This note explains how the same Next.js application grows into the full platform without a rewrite. Nothing below is implemented yet, and no empty placeholder routes exist; a unit test enforces this.
+Phase 1 ships only the public website. This note explains how the same Next.js application grows into the full platform without a rewrite.
+
+> **Status.** Since this was written, the customer portal foundation (Phase 2A, at `/app` rather than `/portal`) and the first slice of the Admin ERP (Phase 2B, the admin operations console at `/admin`) have been built. [PHASE_2A.md](../PHASE_2A.md) and [PHASE_2B.md](../PHASE_2B.md) describe what exists; where they differ from this plan, they win (for example, roles are checked in every page, Server Action and database policy, not in the proxy). The vendor and partner portals are not built, and no placeholder routes exist; a unit test enforces this.
 
 ## One app, separate zones
 

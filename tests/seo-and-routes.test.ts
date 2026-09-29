@@ -1,8 +1,8 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { footerNav, primaryNav } from "@/config/navigation";
-import { indexableRoutes, nonIndexedRoutes, portalRoutes, routes } from "@/config/routes";
+import { adminRoutes, indexableRoutes, nonIndexedRoutes, portalRoutes, routes } from "@/config/routes";
 import { services } from "@/config/services";
 import { absoluteUrl, siteConfig } from "@/config/site";
 import { pageMetadata } from "@/lib/seo/metadata";
@@ -47,11 +47,33 @@ describe("routes", () => {
     }
   });
 
+  it.each(Object.values(adminRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)))("admin route %s has a page", (route) => {
+    expect(existsSync(join(APP, "(admin)", route.slice(1), "page.tsx")), route).toBe(true);
+  });
+
+  it("ships no admin pages beyond the listed admin routes (no placeholders)", () => {
+    const known = new Set(Object.values(adminRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)));
+    const pages: string[] = [];
+    const walk = (dir: string, route: string) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.isDirectory()) walk(join(dir, entry.name), `${route}/${entry.name}`);
+        else if (entry.name === "page.tsx") pages.push(route);
+      }
+    };
+    walk(join(APP, "(admin)", "admin"), "/admin");
+    expect(pages.sort()).toEqual([...known].sort());
+  });
+
   it("renders the admin console per request for an admin, never prerendered or indexed", () => {
     const layout = readFileSync(join(APP, "(admin)", "admin", "layout.tsx"), "utf8");
     expect(layout).toContain('export const dynamic = "force-dynamic"');
     expect(layout).toMatch(/robots[^\n]*\{\s*index:\s*false,\s*follow:\s*false/);
     expect(layout).toContain("requireAdmin(");
+  });
+
+  it.each(Object.values(adminRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)))("admin page %s checks admin rights itself", (route) => {
+    const page = readFileSync(join(APP, "(admin)", route.slice(1), "page.tsx"), "utf8");
+    expect(page).toContain("await requireAdmin(");
   });
 
   it.each(Object.values(portalRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)))("portal route %s has a page", (route) => {

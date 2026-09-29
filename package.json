@@ -13,6 +13,7 @@
     "test:watch": "vitest",
     "qa": "node scripts/qa.mjs",
     "qa:portal": "node --env-file-if-exists=.env.local scripts/portal-e2e.mjs",
+    "qa:admin": "node --env-file-if-exists=.env.local scripts/admin-e2e.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {
@@ -31,6 +32,7 @@
     "@types/node": "^22.20.4",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "axe-core": "^4.13.0",
     "eslint": "^9",
     "eslint-config-next": "16.3.6",
     "playwright-core": "^1.63.0",
