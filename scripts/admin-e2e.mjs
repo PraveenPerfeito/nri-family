@@ -110,6 +110,64 @@ async function makeStaff(p, role) {
   check(!member.error, `could not add the team membership: ${member.error?.message}`);
 }
 
+// ── Cleanup that survives network blips ──────────────────────────────────────
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Retry a Supabase call a few times (brief network drops); returns the last result. */
+async function withRetry(call, attempts = 4) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      last = await call();
+      if (!last?.error) return last;
+    } catch (error) {
+      last = { data: null, error };
+    }
+    await pause(1500 * (i + 1));
+  }
+  return last;
+}
+
+/** Delete one test account; true when it is gone (or never existed). Failures are reported, never hidden. */
+async function deleteAccount(email) {
+  const lookup = () => service.from("profiles").select("auth_user_id").eq("email", email).maybeSingle();
+  const found = await withRetry(lookup);
+  if (found.error) {
+    console.log(`  ! could not look up ${email}: ${found.error.message}`);
+    return false;
+  }
+  if (!found.data) return true;
+  const removed = await withRetry(() => service.auth.admin.deleteUser(found.data.auth_user_id));
+  if (removed.error) {
+    console.log(`  ! could not delete ${email}: ${removed.error.message}`);
+    return false;
+  }
+  const after = await withRetry(lookup);
+  if (after.error || after.data) {
+    console.log(`  ! ${email} may still exist (${after.error ? after.error.message : "its profile remains"})`);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Accounts left behind by an earlier run of this script that was cut off before its cleanup:
+ * the same throwaway address pattern, and over 30 minutes old (so a run in progress is never touched).
+ */
+async function removeLeftovers() {
+  const isTestAccount = (email) => email.startsWith("nfo-e2e-") && email.endsWith(`@${DOMAIN}`) && ["a", "b", "admin", "ops"].some((s) => email.endsWith(`-${s}@${DOMAIN}`));
+  const stale = [];
+  for (let page = 1; page < 50; page++) {
+    const { data, error } = await withRetry(() => service.auth.admin.listUsers({ page, perPage: 200 }));
+    if (error) throw new Error(`could not list accounts to remove leftovers: ${error.message}`);
+    const users = data?.users ?? [];
+    stale.push(...users.filter((u) => isTestAccount(u.email ?? "") && Date.now() - new Date(u.created_at).getTime() > 30 * 60_000));
+    if (users.length < 200) break;
+  }
+  for (const u of stale) if (!(await deleteAccount(u.email))) throw new Error("could not remove a leftover test account");
+  if (stale.length > 0) console.log(`      note: removed ${stale.length} test account(s) left by an interrupted earlier run.`);
+}
+
 // ── Browser ──────────────────────────────────────────────────────────────────
 const engines = { chromium, firefox, webkit };
 const launchOptions = { headless: process.env.E2E_HEADED !== "true" };
@@ -211,6 +269,7 @@ try {
     check(!error, `team_members is not readable (${error?.message}). Apply supabase/migrations/20260929090000_phase_2b_admin_operations.sql first.`);
     const views = await service.from("admin_request_inbox").select("id").limit(0);
     check(!views.error, `admin_request_inbox is missing (${views.error?.code}). Apply supabase/migrations/20260929100000_phase_2b_admin_list_views.sql.`);
+    await removeLeftovers();
     for (const p of everyone) await createAccount(p);
     await makeStaff(adminUser, "ADMIN");
     await makeStaff(opsUser, "OPERATIONS");
@@ -673,19 +732,13 @@ try {
   await browser.close();
   if (KEEP) console.log(`\nKept the test accounts: ${everyone.map((p) => p.email).join(", ")}`);
   else {
-    for (const p of everyone) {
-      const profile = await profileOf(p).catch(() => null);
-      if (!profile) continue;
-      const { error } = await service.auth.admin.deleteUser(profile.auth_user_id);
-      if (error) {
-        console.log(`  ! could not delete ${p.email}: ${error.message}`);
-        exitCode = 1;
-      } else if (await profileOf(p)) {
-        console.log(`  ! ${p.email} was deleted but its profile remains`);
-        exitCode = 1;
-      }
+    let cleaned = true;
+    for (const p of everyone) if (!(await deleteAccount(p.email))) cleaned = false;
+    if (cleaned) console.log("\nDeleted the four test accounts (their property, request, timeline, activity, notifications, team membership and assignment go with them).");
+    else {
+      console.log("\n! Some test accounts may remain. The next run removes them (after 30 minutes), or delete them in Supabase → Authentication → Users.");
+      exitCode = 1;
     }
-    console.log("\nDeleted the four test accounts (their property, request, timeline, activity, notifications, team membership and assignment go with them).");
   }
 }
 

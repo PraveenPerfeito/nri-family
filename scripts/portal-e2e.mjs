@@ -85,6 +85,64 @@ async function profileOf(c) {
   return data;
 }
 
+// ── Cleanup that survives network blips ──────────────────────────────────────
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Retry a Supabase call a few times (brief network drops); returns the last result. */
+async function withRetry(call, attempts = 4) {
+  let last;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      last = await call();
+      if (!last?.error) return last;
+    } catch (error) {
+      last = { data: null, error };
+    }
+    await pause(1500 * (i + 1));
+  }
+  return last;
+}
+
+/** Delete one test account; true when it is gone (or never existed). Failures are reported, never hidden. */
+async function deleteAccount(email) {
+  const lookup = () => admin.from("profiles").select("auth_user_id").eq("email", email).maybeSingle();
+  const found = await withRetry(lookup);
+  if (found.error) {
+    console.log(`  ! could not look up ${email}: ${found.error.message}`);
+    return false;
+  }
+  if (!found.data) return true;
+  const removed = await withRetry(() => admin.auth.admin.deleteUser(found.data.auth_user_id));
+  if (removed.error) {
+    console.log(`  ! could not delete ${email}: ${removed.error.message}`);
+    return false;
+  }
+  const after = await withRetry(lookup);
+  if (after.error || after.data) {
+    console.log(`  ! ${email} may still exist (${after.error ? after.error.message : "its profile remains"})`);
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Accounts left behind by an earlier run of this script that was cut off before its cleanup:
+ * the same throwaway address pattern, and over 30 minutes old (so a run in progress is never touched).
+ */
+async function removeLeftovers() {
+  const isTestAccount = (email) => email.startsWith("nfo-e2e-") && email.endsWith(`@${DOMAIN}`) && ["1", "2"].some((s) => email.endsWith(`-${s}@${DOMAIN}`));
+  const stale = [];
+  for (let page = 1; page < 50; page++) {
+    const { data, error } = await withRetry(() => admin.auth.admin.listUsers({ page, perPage: 200 }));
+    if (error) throw new Error(`could not list accounts to remove leftovers: ${error.message}`);
+    const users = data?.users ?? [];
+    stale.push(...users.filter((u) => isTestAccount(u.email ?? "") && Date.now() - new Date(u.created_at).getTime() > 30 * 60_000));
+    if (users.length < 200) break;
+  }
+  for (const u of stale) if (!(await deleteAccount(u.email))) throw new Error("could not remove a leftover test account");
+  if (stale.length > 0) console.log(`      note: removed ${stale.length} test account(s) left by an interrupted earlier run.`);
+}
+
 // ── Browser ──────────────────────────────────────────────────────────────────
 const engines = { chromium, firefox, webkit };
 const launchOptions = { headless: process.env.E2E_HEADED !== "true" };
@@ -149,6 +207,7 @@ async function expectNoAccess(page, url, body) {
 
 console.log(`Portal acceptance test against ${BASE} (${CHANNEL}), project ${new URL(SUPABASE_URL).host}\n`);
 
+await removeLeftovers();
 const ids = {};
 const session1 = await newCustomerPage("customer 1", c1.timezone);
 const session2 = await newCustomerPage("customer 2", c2.timezone);
@@ -560,19 +619,13 @@ try {
   await browser.close();
   if (KEEP) console.log(`\nKept the test accounts: ${c1.email}, ${c2.email}`);
   else {
-    for (const c of [c1, c2]) {
-      const profile = await profileOf(c).catch(() => null);
-      if (!profile) continue;
-      const { error } = await admin.auth.admin.deleteUser(profile.auth_user_id);
-      if (error) {
-        console.log(`  ! could not delete ${c.email}: ${error.message}`);
-        exitCode = 1;
-      } else if (await profileOf(c)) {
-        console.log(`  ! ${c.email} was deleted but its profile remains`);
-        exitCode = 1;
-      }
+    let cleaned = true;
+    for (const c of [c1, c2]) if (!(await deleteAccount(c.email))) cleaned = false;
+    if (cleaned) console.log("\nDeleted the test accounts (their properties, requests, activity and notifications go with them).");
+    else {
+      console.log("\n! Some test accounts may remain. The next run removes them (after 30 minutes), or delete them in Supabase → Authentication → Users.");
+      exitCode = 1;
     }
-    console.log("\nDeleted the test accounts (their properties, requests, activity and notifications go with them).");
   }
 }
 
