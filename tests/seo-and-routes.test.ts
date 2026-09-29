@@ -38,10 +38,20 @@ describe("routes", () => {
     expect(new Set(paths).size).toBe(paths.length);
   });
 
-  it("does not ship pages for layers 3–5 yet (admin, vendor, partners)", () => {
-    for (const future of ["admin", "vendor", "partners", "(admin)", "(vendor)", "(partners)"]) {
+  it("does not ship pages for later layers yet (vendor and partner portals)", () => {
+    for (const future of ["admin", "vendor", "partners", "(vendor)", "(partners)"]) {
       expect(existsSync(join(APP, future)), future).toBe(false);
     }
+    for (const future of ["vendor", "partners", "operations"]) {
+      expect(existsSync(join(APP, "(admin)", "admin", future)), `admin/${future}`).toBe(false);
+    }
+  });
+
+  it("renders the admin console per request for an admin, never prerendered or indexed", () => {
+    const layout = readFileSync(join(APP, "(admin)", "admin", "layout.tsx"), "utf8");
+    expect(layout).toContain('export const dynamic = "force-dynamic"');
+    expect(layout).toMatch(/robots[^\n]*\{\s*index:\s*false,\s*follow:\s*false/);
+    expect(layout).toContain("requireAdmin(");
   });
 
   it.each(Object.values(portalRoutes).map((r) => (typeof r === "function" ? r("[id]") : r)))("portal route %s has a page", (route) => {
@@ -55,12 +65,12 @@ describe("routes", () => {
     expect(layout).toContain("requireCustomer(");
   });
 
-  it("keeps the customer portal out of the sitemap and search engines", async () => {
+  it("keeps the customer portal and admin console out of the sitemap and search engines", async () => {
     const indexable = indexableRoutes.map((r) => r.path as string);
-    expect(indexable.some((p) => p.startsWith("/app"))).toBe(false);
+    expect(indexable.some((p) => p.startsWith("/app") || p.startsWith("/admin"))).toBe(false);
     const robots = (await import("@/app/robots")).default();
     const rules = Array.isArray(robots.rules) ? robots.rules[0] : robots.rules;
-    expect(rules.disallow).toEqual(expect.arrayContaining(["/app", "/auth"]));
+    expect(rules.disallow).toEqual(expect.arrayContaining(["/app", "/auth", "/admin"]));
   });
 });
 

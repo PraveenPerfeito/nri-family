@@ -26,6 +26,8 @@ const ADMIN_VIEWS = [
   "admin_customer_overview",
   "admin_property_overview",
   "admin_team_overview",
+  "admin_request_inbox",
+  "admin_activity_feed",
 ];
 
 const newCustomer = (label = "customer") => t.createUser(nextEmail(label), { full_name: `Customer ${label}` });
@@ -404,6 +406,48 @@ describe("admin overviews", () => {
     expect(p).toMatchObject({ owner_name: "Customer overview", request_count: 2, open_request_count: 1 });
     const [m] = await rowsAs<Record<string, unknown>>(admin, "select * from public.admin_team_overview where profile_id = $1", [ops.profileId]);
     expect(m).toMatchObject({ role: "OPERATIONS", is_active: true, open_assigned_count: 1, total_assigned_count: 2 });
+  });
+
+  it("the inbox joins each request with its customer, property and assignee", async () => {
+    const admin = await newStaff("ADMIN");
+    const ops = await newStaff("OPERATIONS");
+    const customer = await newCustomer("inbox");
+    const property = await addProperty(customer, "Madurai Plot");
+    const assigned = await addRequest(customer, property, "Security check");
+    const loose = await addRequest(customer, null, "Document help");
+    await call(admin, "admin_assign_request", [assigned.id, ops.profileId]);
+    const rows = await rowsAs<Record<string, unknown>>(admin, "select * from public.admin_request_inbox where customer_id = $1 order by created_at", [customer.profileId]);
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toMatchObject({
+      id: assigned.id,
+      request_number: assigned.request_number,
+      customer_name: "Customer inbox",
+      customer_email: customer.email,
+      property_name: "Madurai Plot",
+      property_city: "Chennai",
+      assignee_id: ops.profileId,
+      assignee_name: "OPERATIONS person",
+    });
+    expect(rows[1]).toMatchObject({ id: loose.id, property_name: null, assignee_id: null, assignee_name: null });
+    const unassigned = await rowsAs(admin, "select id from public.admin_request_inbox where customer_id = $1 and assignee_id is null", [customer.profileId]);
+    expect(unassigned).toEqual([{ id: loose.id }]);
+  });
+
+  it("the activity feed names who acted and whose account it concerns, internal entries included", async () => {
+    const admin = await newStaff("ADMIN");
+    const ops = await newStaff("OPERATIONS");
+    const customer = await newCustomer("feed");
+    const request = await addRequest(customer);
+    await call(admin, "admin_assign_request", [request.id, ops.profileId]);
+    const rows = await rowsAs<{ action: string; actor_name: string; actor_role: string; customer_name: string; visibility: string }>(
+      admin,
+      "select action, actor_name, actor_role, customer_name, visibility from public.admin_activity_feed where entity_type = 'SERVICE_REQUEST' and entity_id = $1 order by created_at",
+      [request.id],
+    );
+    expect(rows).toEqual([
+      { action: "REQUEST_CREATED", actor_name: "Customer feed", actor_role: "CUSTOMER", customer_name: "Customer feed", visibility: "CUSTOMER" },
+      { action: "REQUEST_ASSIGNED", actor_name: "ADMIN person", actor_role: "ADMIN", customer_name: "Customer feed", visibility: "INTERNAL" },
+    ]);
   });
 });
 
