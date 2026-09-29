@@ -148,6 +148,7 @@ const engines = { chromium, firefox, webkit };
 const launchOptions = { headless: process.env.E2E_HEADED !== "true" };
 const browser = engines[CHANNEL] ? await engines[CHANNEL].launch(launchOptions) : await chromium.launch({ ...launchOptions, channel: CHANNEL });
 const pageErrors = [];
+const consoleChecks = [];
 
 async function newCustomerPage(label, timezoneId) {
   const context = await browser.newContext({
@@ -161,11 +162,40 @@ async function newCustomerPage(label, timezoneId) {
   // WebKit reports RSC prefetches cancelled by the next navigation as "access
   // control" errors (as in scripts/qa.mjs). They never reach users.
   const ignored = (message) => CHANNEL === "webkit" && /_rsc=.*access control checks/.test(message);
+  // Browsers cancel prefetches and form responses still in flight when the next page loads (this
+  // test moves on the moment a URL changes). WebKit then logs "TypeError: Load failed" and Firefox
+  // "TypeError: Error in input stream" (as a console error shown as JSHandle@object, or as a page
+  // error). Those two are set aside only within 5 seconds of a real cancellation; every other
+  // console or page error fails the run.
+  const CANCELLED = /Load request cancelled|NS_BINDING_ABORTED|NS_BASE_STREAM_CLOSED|net::ERR_ABORTED/;
+  let lastCancel = 0;
+  page.on("requestfailed", (request) => {
+    if (CANCELLED.test(request.failure()?.errorText ?? "")) lastCancel = Date.now();
+  });
+  const cancelledLoad = (message, at) => /(^|TypeError: )(Load failed|Error in input stream)$/.test(message) && Math.abs(at - lastCancel) < 5000;
   page.on("pageerror", (error) => {
-    if (!ignored(error.message)) pageErrors.push(`${label}: ${error.message}`);
+    const at = Date.now();
+    consoleChecks.push(
+      (async () => {
+        await pause(500);
+        if (!ignored(error.message) && !cancelledLoad(error.message, at)) pageErrors.push(`${label}: ${error.message}`);
+      })(),
+    );
   });
   page.on("console", (msg) => {
-    if (msg.type() === "error" && !ignored(msg.text())) pageErrors.push(`${label}: console: ${msg.text()}`);
+    if (msg.type() !== "error") return;
+    const at = Date.now();
+    consoleChecks.push(
+      (async () => {
+        let message = msg.text();
+        if (message.startsWith("JSHandle@")) {
+          const parts = await Promise.all(msg.args().map((arg) => arg.evaluate((e) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e))).catch(() => "")));
+          message = parts.join(" ").trim() || message;
+        }
+        await pause(500);
+        if (!ignored(message) && !cancelledLoad(message, at)) pageErrors.push(`${label}: console: ${message}`);
+      })(),
+    );
   });
   return { context, page };
 }
@@ -609,6 +639,7 @@ try {
     check((await text(page)).includes("Cancelled"), "the page does not show the cancelled status");
   });
 
+  await Promise.all(consoleChecks);
   if (pageErrors.length) {
     console.log(`\nBrowser errors:\n${pageErrors.map((e) => `  ✗ ${e}`).join("\n")}`);
     exitCode = 1;

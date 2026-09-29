@@ -173,6 +173,7 @@ const engines = { chromium, firefox, webkit };
 const launchOptions = { headless: process.env.E2E_HEADED !== "true" };
 const browser = engines[CHANNEL] ? await engines[CHANNEL].launch(launchOptions) : await chromium.launch({ ...launchOptions, channel: CHANNEL });
 const pageErrors = [];
+const consoleChecks = [];
 
 async function newSession(label, timezoneId) {
   const context = await browser.newContext({
@@ -182,13 +183,42 @@ async function newSession(label, timezoneId) {
   });
   const page = await context.newPage();
   const ignored = (message) => CHANNEL === "webkit" && /_rsc=.*access control checks/.test(message);
+  // Browsers cancel prefetches and form responses still in flight when the next page loads (this
+  // test moves on the moment a URL changes). WebKit then logs "TypeError: Load failed" and Firefox
+  // "TypeError: Error in input stream" (as a console error shown as JSHandle@object, or as a page
+  // error). Those two are set aside only within 5 seconds of a real cancellation; every other
+  // console or page error fails the run.
+  const CANCELLED = /Load request cancelled|NS_BINDING_ABORTED|NS_BASE_STREAM_CLOSED|net::ERR_ABORTED/;
+  let lastCancel = 0;
+  page.on("requestfailed", (request) => {
+    if (CANCELLED.test(request.failure()?.errorText ?? "")) lastCancel = Date.now();
+  });
+  const cancelledLoad = (message, at) => /(^|TypeError: )(Load failed|Error in input stream)$/.test(message) && Math.abs(at - lastCancel) < 5000;
   page.on("pageerror", (error) => {
-    if (!ignored(error.message)) pageErrors.push(`${label}: ${error.message}`);
+    const at = Date.now();
+    consoleChecks.push(
+      (async () => {
+        await pause(500);
+        if (!ignored(error.message) && !cancelledLoad(error.message, at)) pageErrors.push(`${label}: ${error.message}`);
+      })(),
+    );
   });
   page.on("console", (msg) => {
-    // A 404 for /admin is the expected answer for customers; the browser logs it as a failed resource.
-    if (msg.type() === "error" && !ignored(msg.text()) && !/status of 404/.test(msg.text())) pageErrors.push(`${label}: console: ${msg.text()}`);
+    if (msg.type() !== "error") return;
+    const at = Date.now();
+    consoleChecks.push(
+      (async () => {
+        let message = msg.text();
+        if (message.startsWith("JSHandle@")) {
+          const parts = await Promise.all(msg.args().map((arg) => arg.evaluate((e) => (e instanceof Error ? `${e.name}: ${e.message}` : String(e))).catch(() => "")));
+          message = parts.join(" ").trim() || message;
+        }
+        await pause(500);
+        if (!ignored(message) && !cancelledLoad(message, at) && !/status of 404/.test(message)) pageErrors.push(`${label}: console: ${message}`);
+      })(),
+    );
   });
+  // (A 404 for /admin is the expected answer for customers; the browser logs it as a failed resource.)
   return { context, page };
 }
 
@@ -722,6 +752,7 @@ try {
     await api.auth.signOut({ scope: "local" });
   });
 
+  await Promise.all(consoleChecks);
   if (pageErrors.length) {
     console.log(`\nBrowser errors:\n${pageErrors.map((e) => `  ✗ ${e}`).join("\n")}`);
     exitCode = 1;

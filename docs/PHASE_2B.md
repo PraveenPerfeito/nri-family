@@ -2,7 +2,7 @@
 
 The team's side of the platform: one place to see every service request, review it, make someone responsible, move it along, keep internal notes and send updates to the customer. It replaces the Supabase dashboard for everyday request work. It is built on Phase 2A ([PHASE_2A.md](PHASE_2A.md)) in the same app, on the same database.
 
-**Status (29 Sept 2026).** Built and tested. Every test passes locally against the real migrations (unit, database and browser tests; see [Tests](#13-tests)). In production, the first Phase 2B migration is applied; going live needs the second (small) migration, then the app deployment, then the first admin account, in that order ([Deployment steps](#14-deployment-steps)).
+**Status (29 Sept 2026).** Live at https://nri-family.vercel.app/admin. Both Phase 2B migrations are applied to the Supabase project `epqwcpckltrnhzmegtyq`, the app is deployed from `main`, and the first admin account is set up. The acceptance tests pass against the live site and the real database in Edge, Firefox and WebKit ([Tests](#13-tests)).
 
 ## 1. Purpose
 
@@ -166,6 +166,18 @@ The seven Phase 2A statuses. The team may move a request only along these steps.
 
 \* Needs someone assigned first. The form greys these out until then, and the database refuses them.
 
+Each status in detail:
+
+| Status | Who sets it | Reached from | The customer sees | Notification | Activity |
+| --- | --- | --- | --- | --- | --- |
+| New (`SUBMITTED`) | The customer, by submitting | (start) | "Submitted"; timeline "Request submitted" | "Your service request has been received." | `REQUEST_CREATED`, by the customer |
+| Under review | Admin | New, Assigned, Awaiting customer | "Under review"; "Team review started" | "Update on REQ-…" | `REQUEST_STATUS_CHANGED`, by the admin |
+| Assigned | Admin, once someone is assigned | Under review, Awaiting customer | "Assigned"; "Local team assigned" (never who) | "Update on REQ-…" | `REQUEST_STATUS_CHANGED` |
+| In progress | Admin, once someone is assigned | Assigned, Awaiting customer | "In progress"; "Work in progress" | "Update on REQ-…" | `REQUEST_STATUS_CHANGED` |
+| Awaiting customer | Admin | Under review, Assigned, In progress | "Waiting for you", with a note that the team will get in touch; "Waiting for your input" | "Update on REQ-…" | `REQUEST_STATUS_CHANGED` |
+| Completed (final) | Admin, after confirming | In progress | "Completed"; "Request completed"; no next steps | "Update on REQ-…" | `REQUEST_STATUS_CHANGED` |
+| Cancelled (final) | Admin, after confirming, from any open status; or the customer, from New or Under review | any open status | "Cancelled"; "Request cancelled" | "Update on REQ-…" when the team cancels; none when the customer does | `REQUEST_CANCELLED` |
+
 - **Customers keep their single Phase 2A step:** cancel their own request while it is New or Under review.
 - **Stale screens are refused.** The form sends the status the admin was looking at. If someone changed the request meanwhile, the change is refused ("Someone updated this request a moment ago") and the page reloads with the latest status.
 - **Completing or cancelling asks for confirmation**, because both are final.
@@ -268,13 +280,23 @@ npm run qa:admin       # Phase 2B acceptance test (reads .env.local)
 | 27 | The admin completes the request (confirmed); it is final |
 | 28 | Deactivating the admin removes their access to the console, the views and the functions at once |
 
-**Results (29 Sept 2026, local stand-in with both migrations):**
-- `npm run qa:admin`: **30/30 in Edge, Firefox and WebKit**.
-- `npm run qa:portal`: 23/23.
-- `npm run qa`: 506 checks, 0 failures.
-- Unit and database tests all pass.
+**Results (29 Sept 2026):**
+
+| Run | Local stand-in (both migrations) | Live site + real project |
+| --- | --- | --- |
+| `npm run check` (lint, types, 356 unit and database tests, build) | pass | n/a |
+| `npm run qa:admin` | 30/30 in Edge, Firefox and WebKit | 30/30 in Edge, Firefox and WebKit |
+| `npm run qa:portal` (Phase 2A regression) | 23/23 | 23/23 in Edge, Firefox and WebKit |
+| `npm run qa` (public site; read-only on live) | 506 checks, 0 failures | 506 checks, 0 failures |
+
+Notes from the live runs:
+
+- **Console messages from cancelled loads.** Browsers cancel prefetches and form responses still in flight when the next page loads, and the tests move on the moment a URL changes. WebKit then logs "TypeError: Load failed" and Firefox "Error in input stream". The scripts set these two messages aside only within 5 seconds of a real cancellation; any other console or page error fails the run.
+- **Cleanup after a cut-off run.** One run was cut short by a network drop on the test machine and left its four test accounts behind. They were deleted the same day and nothing else was affected. The scripts now retry cleanup, fail loudly if it doesn't finish, and remove such leftovers at the start of the next run.
 
 ## 14. Deployment steps
+
+**Production (29 Sept 2026): steps 1–6 are done.** Both migrations are applied, the app is deployed, the first admin is set up, and the live acceptance tests pass.
 
 Order matters. The new app code reads columns and views the migrations add, so apply them **first**. The live Phase 2A app works unchanged on the new schema.
 
