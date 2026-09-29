@@ -318,6 +318,40 @@ describe("assignment", () => {
     expect(last[0].action).toBe("REQUEST_UNASSIGNED");
   });
 
+  it("a closed request keeps its last assignment: it can't be removed or changed", async () => {
+    const admin = await newStaff("ADMIN");
+    const ops = await newStaff("OPERATIONS");
+    const other = await newStaff("OPERATIONS");
+    const customer = await newCustomer("closed-assignment");
+    const completed = await addRequest(customer);
+    const cancelled = await addRequest(customer);
+    await moveTo(admin, completed.id, ["UNDER_REVIEW", "ASSIGNED", "IN_PROGRESS", "COMPLETED"], ops);
+    await moveTo(admin, cancelled.id, ["UNDER_REVIEW", "ASSIGNED", "CANCELLED"], ops);
+    for (const request of [completed, cancelled]) {
+      expect(await errorOf(call(admin, "admin_unassign_request", [request.id])), request.request_number).toMatch(/request_closed/);
+      expect(await errorOf(call(admin, "admin_assign_request", [request.id, other.profileId])), request.request_number).toMatch(/request_closed/);
+      const [row] = await rowsAs<{ assignee_id: string }>(admin, "select assignee_id from public.request_assignments where request_id = $1", [request.id]);
+      expect(row?.assignee_id, request.request_number).toBe(ops.profileId);
+    }
+  });
+
+  it("a deactivated team member no longer counts as responsible", async () => {
+    const admin = await newStaff("ADMIN");
+    const ops = await newStaff("OPERATIONS");
+    const replacement = await newStaff("OPERATIONS");
+    const request = await addRequest(await newCustomer("inactive-assignee"));
+    await call(admin, "admin_change_request_status", [request.id, "SUBMITTED", "UNDER_REVIEW"]);
+    await call(admin, "admin_assign_request", [request.id, ops.profileId]);
+    await t.asService((tx) => tx.query("update public.team_members set is_active = false where profile_id = $1", [ops.profileId]));
+    expect(await errorOf(call(admin, "admin_change_request_status", [request.id, "UNDER_REVIEW", "ASSIGNED"]))).toMatch(/assignment_required/);
+    expect(await statusOf(request.id)).toBe("UNDER_REVIEW");
+    await call(admin, "admin_assign_request", [request.id, replacement.profileId]);
+    await call(admin, "admin_change_request_status", [request.id, "UNDER_REVIEW", "ASSIGNED"]);
+    await t.asService((tx) => tx.query("update public.team_members set is_active = false where profile_id = $1", [replacement.profileId]));
+    expect(await errorOf(call(admin, "admin_change_request_status", [request.id, "ASSIGNED", "IN_PROGRESS"]))).toMatch(/assignment_required/);
+    expect(await statusOf(request.id)).toBe("ASSIGNED");
+  });
+
   it("customers cannot assign anyone, even through the function", async () => {
     const customer = await newCustomer("self-assign");
     const request = await addRequest(customer);

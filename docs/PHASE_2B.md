@@ -2,7 +2,7 @@
 
 The team's side of the platform: one place to see every service request, review it, make someone responsible, move it along, keep internal notes and send updates to the customer. It replaces the Supabase dashboard for everyday request work. It is built on Phase 2A ([PHASE_2A.md](PHASE_2A.md)) in the same app, on the same database.
 
-**Status (29 Sept 2026).** Live at https://nri-family.vercel.app/admin. Both Phase 2B migrations are applied to the Supabase project `epqwcpckltrnhzmegtyq`, the app is deployed from `main`, and the first admin account is set up. The acceptance tests pass against the live site and the real database in Edge, Firefox and WebKit ([Tests](#13-tests)).
+**Status (29 Sept 2026).** Live at https://nri-family.vercel.app/admin. The first two Phase 2B migrations are applied to the Supabase project `epqwcpckltrnhzmegtyq`, the app is deployed from `main`, and the first admin account is set up. The acceptance tests pass against the live site and the real database in Edge, Firefox and WebKit ([Tests](#13-tests)). **Pending:** the third migration, `20260929110000_phase_2b_assignment_rules.sql` (two assignment rules found in the production audit), is written and tested but not yet active in production ([Deployment steps](#14-deployment-steps)).
 
 ## 1. Purpose
 
@@ -42,7 +42,7 @@ Browser ──► Next.js on Vercel (same app as the site and the customer porta
   - Server Actions: [src/lib/admin/actions/requests.ts](../src/lib/admin/actions/requests.ts), validation: [validation.ts](../src/lib/admin/validation.ts)
   - vocabulary and the lifecycle table: [src/lib/admin/domain.ts](../src/lib/admin/domain.ts); audit lines: [activity.ts](../src/lib/admin/activity.ts)
   - components: [src/components/admin/](../src/components/admin/)
-  - database: [20260929090000_phase_2b_admin_operations.sql](../supabase/migrations/20260929090000_phase_2b_admin_operations.sql) and [20260929100000_phase_2b_admin_list_views.sql](../supabase/migrations/20260929100000_phase_2b_admin_list_views.sql)
+  - database: [20260929090000_phase_2b_admin_operations.sql](../supabase/migrations/20260929090000_phase_2b_admin_operations.sql), [20260929100000_phase_2b_admin_list_views.sql](../supabase/migrations/20260929100000_phase_2b_admin_list_views.sql) and [20260929110000_phase_2b_assignment_rules.sql](../supabase/migrations/20260929110000_phase_2b_assignment_rules.sql)
 
 ## 3. Roles
 
@@ -92,10 +92,11 @@ Everything under `/admin` is `noindex`, `Cache-Control: private, no-store`, disa
 
 ## 5. Database changes
 
-Two new, additive migrations. The Phase 2A migration is unchanged, and the live Phase 2A app works unchanged on top of both.
+Three new, additive migrations. The Phase 2A migration is unchanged, and the live Phase 2A app works unchanged on top of them.
 
 - [20260929090000_phase_2b_admin_operations.sql](../supabase/migrations/20260929090000_phase_2b_admin_operations.sql): everything below except the two list views. Applied in production on 29 Sept 2026.
 - [20260929100000_phase_2b_admin_list_views.sql](../supabase/migrations/20260929100000_phase_2b_admin_list_views.sql): the views `admin_request_inbox` and `admin_activity_feed`, added after the first file was applied (an applied migration is never edited).
+- [20260929110000_phase_2b_assignment_rules.sql](../supabase/migrations/20260929110000_phase_2b_assignment_rules.sql): hardening from the production audit. `admin_unassign_request` now refuses closed requests, and Assigned / In progress need an *active* assignee (section 9). **Not yet active in production** as of 29 Sept 2026: until it is, an admin calling the database directly (not through the console) could still remove a closed request's assignee, or move a request with a deactivated assignee to Assigned or In progress. The console itself doesn't offer either.
 
 | Change | Detail |
 | --- | --- |
@@ -191,7 +192,8 @@ Each status in detail:
 
 - **Assign or reassign** to any active team member, admin or operations. The form lists them with their current open workload.
 - **Remove an assignment** only while the request is not Assigned or In progress: someone must stay responsible. Reassign instead, or move the request back to Under review first.
-- **Closed requests** (completed or cancelled) keep their last assignment. It can't change.
+- **Closed requests** (completed or cancelled) keep their last assignment. It can't be changed or removed.
+- **Deactivated members don't count as responsible.** A request whose assignee has been deactivated can't move to Assigned or In progress until it is reassigned. The request page shows such an assignee as "no longer active".
 - **Assigning the same person again** changes nothing and logs nothing.
 - **Every change is audited** as internal activity: `REQUEST_ASSIGNED`, `REQUEST_REASSIGNED` or `REQUEST_UNASSIGNED`, recording the request number and team member ids.
 - **Customers never see who is assigned.** They see the status ("Local team assigned"). The assignment table and its activity are admin-only.
@@ -249,7 +251,7 @@ npm run qa:admin       # Phase 2B acceptance test (reads .env.local)
 
 | Layer | Where | What it proves |
 | --- | --- | --- |
-| **Database** (30 new, 34 Phase 2A) | [tests/db/admin-operations.test.ts](../tests/db/admin-operations.test.ts) | Both migrations in real Postgres (PGlite): who counts as an admin; deactivation; admins read everything but can't edit identity or ownership, or delete; customers see nothing new; anonymous access denied; the 49-pair lifecycle check; stale, final and assignee rules; internal notes never visible to customers; updates visible and notified; views and counts; cascades. |
+| **Database** (32 new, 34 Phase 2A) | [tests/db/admin-operations.test.ts](../tests/db/admin-operations.test.ts) | Both migrations in real Postgres (PGlite): who counts as an admin; deactivation; admins read everything but can't edit identity or ownership, or delete; customers see nothing new; anonymous access denied; the 49-pair lifecycle check; stale, final and assignee rules; internal notes never visible to customers; updates visible and notified; views and counts; cascades. |
 | **App layer** | [tests/admin/admin-app.test.ts](../tests/admin/admin-app.test.ts) | `requireAdmin` (signed out, not connected, customer, inactive, operations, unreadable membership); page titles; routing between the workspaces; proxy; every action refused for signed-out visitors, customers and inactive admins with nothing sent to the database; exact function arguments (never an actor or customer id); malformed ids and invalid statuses rejected; error mapping; logs without note text. |
 | **Logic** | [tests/admin/admin-logic.test.ts](../tests/admin/admin-logic.test.ts) | Lifecycle rules, search sanitising, URL parameters, audit lines. |
 | **Guards** | `content-guards`, `seo-and-routes`, `deployment-config` | Admin code uses no sample data and writes no tables directly; every admin action calls `requireAdmin`; no browser-supplied actor, customer or role; every admin route has a page and there are no others; `noindex` / `no-store` on `/admin`; vendor and partner areas still absent. |
@@ -289,6 +291,15 @@ npm run qa:admin       # Phase 2B acceptance test (reads .env.local)
 | `npm run qa:portal` (Phase 2A regression) | 23/23 | 23/23 in Edge, Firefox and WebKit |
 | `npm run qa` (public site; read-only on live) | 506 checks, 0 failures | 506 checks, 0 failures |
 
+**Production audit (29 Sept 2026).** A security probe ran against the live database with throwaway accounts:
+- all 49 status transitions, called directly;
+- stale, replayed and tampered calls;
+- every admin function against every kind of caller (anonymous, customer, other customer, inactive admin, operations);
+- internal notes and customer isolation in both directions;
+- notification counts, activity integrity, and RLS for anonymous, customer and admin readers.
+
+Everything passed except the two rules `20260929110000` adds, which the live database doesn't enforce until that migration is applied. The audit also removed leftover test accounts from interrupted runs; the real accounts and records were verified unchanged.
+
 Notes from the live runs:
 
 - **Console messages from cancelled loads.** Browsers cancel prefetches and form responses still in flight when the next page loads, and the tests move on the moment a URL changes. WebKit then logs "TypeError: Load failed" and Firefox "Error in input stream". The scripts set these two messages aside only within 5 seconds of a real cancellation; any other console or page error fails the run.
@@ -296,11 +307,11 @@ Notes from the live runs:
 
 ## 14. Deployment steps
 
-**Production (29 Sept 2026): steps 1–6 are done.** Both migrations are applied, the app is deployed, the first admin is set up, and the live acceptance tests pass.
+**Production (29 Sept 2026):** steps 1–6 are done for the first two migrations: they are applied, the app is deployed, the first admin is set up, and the live acceptance tests pass. **`20260929110000_phase_2b_assignment_rules.sql` still needs step 1**, then step 7.
 
 Order matters. The new app code reads columns and views the migrations add, so apply them **first**. The live Phase 2A app works unchanged on the new schema.
 
-1. **Apply the migrations, in order, each once.** Supabase → **SQL Editor** → New query → paste the whole file → Run: first `supabase/migrations/20260929090000_phase_2b_admin_operations.sql` (already done in production), then `supabase/migrations/20260929100000_phase_2b_admin_list_views.sql`. Do not use `supabase db push`: the migrations were applied in the SQL editor and aren't in the CLI's history, so `db push` would try to run them again.
+1. **Apply the migrations, in order, each once.** Supabase → **SQL Editor** → New query → paste the whole file → Run: `supabase/migrations/20260929090000_phase_2b_admin_operations.sql`, then `20260929100000_phase_2b_admin_list_views.sql`, then `20260929110000_phase_2b_assignment_rules.sql`. Do not use `supabase db push`: the migrations were applied in the SQL editor and aren't in the CLI's history, so `db push` would try to run them again.
 2. **Check it.** In the SQL editor:
    ```sql
    select count(*) from public.team_members;                  -- 0
@@ -312,6 +323,8 @@ Order matters. The new app code reads columns and views the migrations add, so a
 4. **Make the first admin** with the SQL in [section 3](#3-roles), using an account with no customer data.
 5. **Sign in** at `/login`. You land on `/admin`.
 6. **Verify** with `npm run qa:admin` against the live site: set `BASE_URL=https://nri-family.vercel.app` (the other values come from `.env.local`). It creates and deletes its own four test accounts. The customer accounts are created the team's way, so no email is sent.
+
+7. **Confirm production matches the repository.** Run `scripts/sql/schema-fingerprint.sql` in the SQL editor (read-only) and compare its 13 rows with `node scripts/schema-fingerprint.mjs`, which runs the same query on the repository's migrations locally. Equal hashes mean an identical schema: columns, constraints, indexes, triggers, policies, function bodies, views and grants. Different Postgres versions can render the same SQL slightly differently, so compare the `g functions` row first: function bodies are stored exactly as written.
 
 **Rolling back.** The migrations are additive. To undo a bad release, redeploy the previous commit: the Phase 2A app runs on the Phase 2B schema. No database rollback is needed or provided (dropping the new tables would delete the team and assignment records).
 

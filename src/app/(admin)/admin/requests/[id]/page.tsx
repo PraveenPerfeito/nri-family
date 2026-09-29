@@ -29,6 +29,8 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
   const tz = admin.profile.timezone;
   const customerName = customer?.full_name ?? inbox.customer_name;
   const address = property ? [property.address_line_1, property.address_line_2].filter(Boolean).join(", ") : "";
+  // Only an active team member counts as responsible (the database checks the same).
+  const assigneeActive = Boolean(inbox.assignee_id) && team.some((m) => m.profile_id === inbox.assignee_id);
 
   return (
     <div className="space-y-6">
@@ -74,14 +76,22 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
             <div className="mb-4 flex items-center gap-2 text-sm text-ink-muted">
               Now: <AdminStatusBadge status={request.status} />
             </div>
-            <StatusForm requestId={request.id} current={request.status} hasAssignee={Boolean(inbox.assignee_id)} customerName={customerName} />
+            <StatusForm requestId={request.id} current={request.status} hasAssignee={assigneeActive} customerName={customerName} />
           </Panel>
 
           <Panel title="Assignment" labelledBy="assignment">
             <AssignmentForm
               requestId={request.id}
               status={request.status}
-              assignee={inbox.assignee_id ? { id: inbox.assignee_id, name: inbox.assignee_name ?? "Former team member", since: inbox.assigned_at ? formatDate(inbox.assigned_at, tz) : "" } : null}
+              assignee={
+                inbox.assignee_id
+                  ? {
+                      id: inbox.assignee_id,
+                      name: `${inbox.assignee_name ?? "Former team member"}${assigneeActive ? "" : " (no longer active)"}`,
+                      since: inbox.assigned_at ? formatDate(inbox.assigned_at, tz) : "",
+                    }
+                  : null
+              }
               team={team.map((m) => ({ id: m.profile_id, name: m.full_name, role: m.role as TeamRole, open: m.open_assigned_count }))}
             />
           </Panel>
