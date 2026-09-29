@@ -1,7 +1,7 @@
 import "server-only";
 import { redirect } from "next/navigation";
 import { cache } from "react";
-import { routes } from "@/config/routes";
+import { adminRoutes, routes } from "@/config/routes";
 import { isPortalConfigured } from "@/lib/supabase/config";
 import { createSupabaseServerClient, type PortalClient } from "@/lib/supabase/server";
 import type { Profile } from "./domain";
@@ -39,14 +39,31 @@ export const getViewer = cache(async (): Promise<Viewer | null> => {
 });
 
 /**
+ * Whether the signed-in person is an active admin: role ADMIN and an active
+ * team membership. The membership is read through Row Level Security, which
+ * shows it only to active admins, so the role alone is never enough.
+ * Memoised per request (the viewer object is itself memoised).
+ */
+export const isActiveAdmin = cache(async (viewer: Viewer): Promise<boolean> => {
+  if (viewer.profile.role !== "ADMIN") return false;
+  const { data, error } = await viewer.supabase.from("team_members").select("is_active").eq("profile_id", viewer.profile.id).maybeSingle();
+  if (error) {
+    logPortalError("load team membership", error, { profileId: viewer.profile.id });
+    return false;
+  }
+  return data?.is_active === true;
+});
+
+/**
  * The signed-in customer, or a redirect to sign-in. `returnTo` is the portal
- * path to come back to afterwards. Other roles (team, vendor, partner) have no
- * workspace yet in Phase 2A and are turned away here.
+ * path to come back to afterwards. Active admins are sent to the admin
+ * console; other roles (operations staff, vendor, partner) have no workspace
+ * yet and are turned away here.
  */
 export async function requireCustomer(returnTo?: string): Promise<Viewer> {
   const viewer = await getViewer();
   if (!viewer) redirect(returnTo ? `${routes.login}?next=${encodeURIComponent(returnTo)}` : routes.login);
-  if (viewer.profile.role !== "CUSTOMER") redirect(`${routes.login}?notice=workspace-unavailable`);
+  if (viewer.profile.role !== "CUSTOMER") redirect((await isActiveAdmin(viewer)) ? adminRoutes.dashboard : `${routes.login}?notice=workspace-unavailable`);
   return viewer;
 }
 

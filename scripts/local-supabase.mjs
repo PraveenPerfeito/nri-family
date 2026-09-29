@@ -11,7 +11,8 @@
  * behave exactly as in Supabase.
  *
  * What is emulated: Auth (GoTrue) and the REST API (PostgREST), only the
- * endpoints and query features supabase-js uses in this app. Differences
+ * endpoints and query features supabase-js uses in this app (tables, views
+ * and POST /rest/v1/rpc/<function> with named arguments). Differences
  * from a real project: tokens are HS256 (so getClaims() verifies through
  * /auth/v1/user rather than JWKS), no email is sent (links are printed and
  * listed at /__mail), sign-up rate limits and password-strength rules beyond
@@ -542,6 +543,43 @@ async function handleRest(method, table, query, headers, body) {
   });
 }
 
+/** POST /rest/v1/rpc/<name>: call public.<name>(arg => value, ...) as the caller, like PostgREST. */
+async function handleRpc(method, name, headers, body) {
+  let role;
+  let claims;
+  let isVoid;
+  const args = body && typeof body === "object" && !Array.isArray(body) ? body : {};
+  const names = Object.keys(args);
+  try {
+    if (method !== "POST") throw restError(405, "PGRST117", `unsupported method ${method}`);
+    quoteIdent(name);
+    names.forEach(quoteIdent);
+    ({ role, claims } = roleFor(headers));
+    // Resolved before the transaction (PGlite has a single connection).
+    const fn = await db.query(
+      "select p.prorettype = 'void'::regtype as is_void from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = $1",
+      [name],
+    );
+    if (fn.rows.length === 0) throw restError(404, "PGRST202", `Could not find the function public.${name} in the schema cache`);
+    isVoid = fn.rows[0].is_void;
+  } catch (error) {
+    if (error.rest) return error.rest;
+    throw error;
+  }
+  const list = names.map((n, i) => `${quoteIdent(n)} => $${i + 1}`).join(", ");
+  return db
+    .transaction(async (tx) => {
+      await tx.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
+      await tx.exec(`set local role ${role}`);
+      const res = await tx.query(`select public.${quoteIdent(name)}(${list}) as r`, names.map((n) => args[n]));
+      return isVoid ? { status: 204, body: null } : { status: 200, body: res.rows[0]?.r ?? null };
+    })
+    .catch((error) => {
+      const code = error.code ?? "XX000";
+      return { status: pgStatus(code, role), body: { code, message: error.message, details: error.detail ?? null, hint: error.hint ?? null } };
+    });
+}
+
 // ── HTTP ────────────────────────────────────────────────────────────────────
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, BASE);
@@ -560,6 +598,8 @@ const server = createServer(async (req, res) => {
       result = { status: 200, body: mail.filter((m) => !to || m.to === to) };
     } else if (url.pathname.startsWith("/auth/v1")) {
       result = await handleAuth(req.method, url.pathname.slice("/auth/v1".length), url.searchParams, req.headers, body);
+    } else if (url.pathname.startsWith("/rest/v1/rpc/")) {
+      result = await handleRpc(req.method, url.pathname.slice("/rest/v1/rpc/".length), req.headers, body);
     } else if (url.pathname.startsWith("/rest/v1/")) {
       result = await handleRest(req.method, url.pathname.slice("/rest/v1/".length), url.searchParams, req.headers, body);
     } else result = { status: 404, body: { message: "not found" } };

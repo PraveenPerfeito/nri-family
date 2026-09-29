@@ -1,25 +1,26 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { routes } from "@/config/routes";
+import { isAdminPath, isPortalPath } from "@/lib/portal/redirects";
 import type { Database } from "@/types/database";
 import { sessionCookieOptions, supabaseConfig } from "./config";
 
 /**
- * Runs in the proxy for portal and account routes:
+ * Runs in the proxy for portal, admin and account routes:
  * 1. refreshes the Supabase session so cookies stay valid;
- * 2. sends signed-out visitors from /app pages to /login?next=… (an
- *    optimistic check only — every page and Server Action verifies the
- *    session again through src/lib/portal/session.ts).
+ * 2. sends signed-out visitors from /app and /admin pages to /login?next=…
+ *    (an optimistic check only — every page and Server Action verifies the
+ *    session and role again through requireCustomer / requireAdmin).
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
   let response = NextResponse.next({ request });
   const config = supabaseConfig();
   const { pathname, search } = request.nextUrl;
-  const isPortal = pathname === "/app" || pathname.startsWith("/app/");
+  const isPrivate = isPortalPath(pathname) || isAdminPath(pathname);
 
   if (!config) {
-    // No project connected: the portal is closed, so /app goes to the login page that says so.
-    return isPortal && request.method === "GET" ? NextResponse.redirect(new URL(routes.login, request.url)) : response;
+    // No project connected: the portal is closed, so /app and /admin go to the login page that says so.
+    return isPrivate && request.method === "GET" ? NextResponse.redirect(new URL(routes.login, request.url)) : response;
   }
 
   const supabase = createServerClient<Database>(config.url, config.publishableKey, {
@@ -40,7 +41,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   const signedIn = Boolean(data?.claims?.sub);
 
   // Only page loads are redirected; Server Actions answer for themselves.
-  if (!signedIn && isPortal && request.method === "GET") {
+  if (!signedIn && isPrivate && request.method === "GET") {
     const url = new URL(routes.login, request.url);
     url.searchParams.set("next", `${pathname}${search}`);
     const redirect = NextResponse.redirect(url);
@@ -48,6 +49,6 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     return redirect;
   }
 
-  if (isPortal) response.headers.set("Cache-Control", "private, no-store");
+  if (isPrivate) response.headers.set("Cache-Control", "private, no-store");
   return response;
 }

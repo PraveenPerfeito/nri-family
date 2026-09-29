@@ -4,10 +4,10 @@ import { AuthPreview } from "@/components/forms/auth-preview";
 import { AuthCard, authNotices } from "@/components/portal/auth/auth-card";
 import { LoginForm } from "@/components/portal/auth/auth-forms";
 import { Button, ButtonLink } from "@/components/ui/button";
-import { routes } from "@/config/routes";
+import { adminRoutes, portalRoutes, routes } from "@/config/routes";
 import { signOutAction } from "@/lib/portal/actions/auth";
-import { safeNextPath } from "@/lib/portal/redirects";
-import { getViewer } from "@/lib/portal/session";
+import { isAdminPath, safeNextPath } from "@/lib/portal/redirects";
+import { getViewer, isActiveAdmin } from "@/lib/portal/session";
 import { pageMetadata } from "@/lib/seo/metadata";
 import { areSignupsOpen, isPortalConfigured } from "@/lib/supabase/config";
 
@@ -24,7 +24,9 @@ export default async function LoginPage(props: PageProps<"/login">) {
 
   const next = safeNextPath(params.next);
   const viewer = await getViewer();
-  if (viewer?.profile.role === "CUSTOMER") redirect(next);
+  // Already signed in: go to your own workspace, keeping `next` only when it belongs to it.
+  if (viewer?.profile.role === "CUSTOMER") redirect(isAdminPath(next) ? portalRoutes.dashboard : next);
+  if (viewer && (await isActiveAdmin(viewer))) redirect(isAdminPath(next) ? next : adminRoutes.dashboard);
   const notice = typeof params.notice === "string" ? authNotices[params.notice] : undefined;
 
   return (

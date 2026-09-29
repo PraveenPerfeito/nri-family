@@ -68,6 +68,8 @@ const nextConfig: NextConfig = {
       { source: "/:path*", headers: [...securityHeaders, ...noIndexHeaders] },
       { source: "/app/:path*", headers: privateHeaders },
       { source: "/app", headers: privateHeaders },
+      { source: "/admin/:path*", headers: privateHeaders },
+      { source: "/admin", headers: privateHeaders },
       { source: "/auth/:path*", headers: privateHeaders },
     ];
   },

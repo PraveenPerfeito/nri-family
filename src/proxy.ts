@@ -2,9 +2,9 @@ import type { NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/proxy";
 
 /**
- * Keeps customer sessions fresh on the portal and account routes only, so the
+ * Keeps sessions fresh on the portal, admin and account routes only, so the
  * public marketing pages stay fully static. Authorization itself is enforced
- * in every page and Server Action (src/lib/portal/session.ts) and by the
+ * in every page and Server Action (requireCustomer / requireAdmin) and by the
  * database's Row Level Security, never by this proxy alone.
  */
 export async function proxy(request: NextRequest) {
@@ -12,5 +12,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/app", "/app/:path*", "/login", "/register", "/forgot-password", "/reset-password", "/auth/:path*"],
+  matcher: ["/app", "/app/:path*", "/admin", "/admin/:path*", "/login", "/register", "/forgot-password", "/reset-password", "/auth/:path*"],
 };

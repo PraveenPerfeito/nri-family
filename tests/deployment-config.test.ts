@@ -43,9 +43,9 @@ describe("whatsappLink", () => {
 });
 
 describe("private workspace headers", () => {
-  it("always sends noindex and no-store for /app and /auth", async () => {
+  it("always sends noindex and no-store for /app, /admin and /auth", async () => {
     const rules = (await nextConfig.headers?.()) ?? [];
-    for (const source of ["/app", "/app/:path*", "/auth/:path*"]) {
+    for (const source of ["/app", "/app/:path*", "/admin", "/admin/:path*", "/auth/:path*"]) {
       const rule = rules.find((r) => r.source === source);
       expect(rule, source).toBeDefined();
       expect(rule!.headers).toEqual(expect.arrayContaining([{ key: "X-Robots-Tag", value: "noindex, nofollow" }, { key: "Cache-Control", value: "private, no-store" }]));

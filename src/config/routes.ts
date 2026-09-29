@@ -72,5 +72,22 @@ export const portalRoutes = {
   settings: "/app/settings",
 } as const;
 
+/**
+ * The admin operations console (Phase 2B), for active team members with the
+ * ADMIN role only. Never in the sitemap, disallowed in robots.txt and sent
+ * with `X-Robots-Tag: noindex` and `Cache-Control: private, no-store`.
+ */
+export const adminRoutes = {
+  dashboard: "/admin",
+  requests: "/admin/requests",
+  request: (id: string) => `/admin/requests/${id}`,
+  customers: "/admin/customers",
+  customer: (id: string) => `/admin/customers/${id}`,
+  properties: "/admin/properties",
+  property: (id: string) => `/admin/properties/${id}`,
+  team: "/admin/team",
+  activity: "/admin/activity",
+} as const;
+
 /** Where auth emails land (Supabase confirmation / recovery links). */
 export const authCallbackPath = "/auth/confirm";

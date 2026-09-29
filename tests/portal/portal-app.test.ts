@@ -99,9 +99,12 @@ describe("session gate (requireCustomer)", () => {
     expect(profileQuery?.filters).toContainEqual(["eq", "auth_user_id", "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
   });
 
-  it("turns away team, vendor and partner accounts (no workspace for them in Phase 2A)", async () => {
-    signInAs(fake, { role: "ADMIN" });
-    expect(await redirectOf(requireCustomer("/app"))).toBe("/login?notice=workspace-unavailable");
+  it("turns away operations, vendor and partner accounts, and admins without an active membership", async () => {
+    for (const role of ["OPERATIONS", "VENDOR", "PARTNER", "ADMIN"]) {
+      fake.reset();
+      signInAs(fake, { role });
+      expect(await redirectOf(requireCustomer("/app")), role).toBe("/login?notice=workspace-unavailable");
+    }
   });
 });
 

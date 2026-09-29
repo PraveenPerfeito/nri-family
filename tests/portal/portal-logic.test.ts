@@ -134,6 +134,7 @@ describe("activity lines", () => {
     entity_type: entityType,
     entity_id: "44444444-4444-4444-8444-444444444444",
     metadata,
+    visibility: "CUSTOMER",
     created_at: "2026-09-28T06:30:00Z",
   });
 
