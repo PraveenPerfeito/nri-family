@@ -198,12 +198,18 @@ export function Pagination({ page, total, pageSize, href }: { page: number; tota
   );
 }
 
-/** Term / value list for detail pages. */
-export function DetailList({ items }: { items: { label: string; value: ReactNode }[] }) {
+/** Term / value list for detail pages. `narrow` suits side panels: a slimmer label column. */
+export function DetailList({ items, narrow }: { items: { label: string; value: ReactNode }[]; narrow?: boolean }) {
   return (
     <dl className="divide-y divide-line-subtle">
       {items.map((item) => (
-        <div key={item.label} className="grid grid-cols-1 gap-1 py-3 first:pt-0 last:pb-0 sm:grid-cols-[10rem_minmax(0,1fr)] sm:gap-4">
+        <div
+          key={item.label}
+          className={cn(
+            "grid grid-cols-1 gap-1 py-3 first:pt-0 last:pb-0 sm:gap-4",
+            narrow ? "sm:grid-cols-[6rem_minmax(0,1fr)]" : "sm:grid-cols-[10rem_minmax(0,1fr)]",
+          )}
+        >
           <dt className="text-sm text-ink-subtle">{item.label}</dt>
           <dd className="text-sm font-medium break-words text-ink">{item.value}</dd>
         </div>
