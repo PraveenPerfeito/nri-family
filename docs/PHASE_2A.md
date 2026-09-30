@@ -311,8 +311,8 @@ The prompt's sample dashboard showed a health score ("92 / 100") and an "Upcomin
 | Phase | Scope |
 | --- | --- |
 | 2B | Admin operations: request queue, statuses, assignment, internal notes, customer updates. **Built** ([PHASE_2B.md](PHASE_2B.md)); staff MFA is still to do. |
-| 2C | Vendor operations |
-| 2D | Evidence and service reports: photos, visit reports |
+| 2C | Field operations and evidence: visits, photos, videos and documents, reviewed and explicitly shared. **Built** ([PHASE_2C.md](PHASE_2C.md)) |
+| 2D | Service reports: visit reports |
 | 2E | Approvals and payments |
 | 2F | Documents |
 | 2G | Rental management |

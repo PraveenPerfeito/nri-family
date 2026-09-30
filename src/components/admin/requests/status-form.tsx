@@ -13,9 +13,23 @@ import { ConfirmDialog } from "./confirm-dialog";
  * Moves a request to one of the statuses the lifecycle allows next. The
  * current status travels with the form, so a change made on a stale screen
  * is refused. Completing or cancelling (both final) asks for confirmation.
- * The server and the database check every rule again.
+ * `unavailable` greys out a choice with the reason (for example Completed,
+ * while a visit or its evidence is unfinished). The server and the database
+ * check every rule again.
  */
-export function StatusForm({ requestId, current, hasAssignee, customerName }: { requestId: string; current: RequestStatus; hasAssignee: boolean; customerName: string }) {
+export function StatusForm({
+  requestId,
+  current,
+  hasAssignee,
+  customerName,
+  unavailable,
+}: {
+  requestId: string;
+  current: RequestStatus;
+  hasAssignee: boolean;
+  customerName: string;
+  unavailable?: Partial<Record<RequestStatus, string>>;
+}) {
   const [state, formAction, pending] = useActionState(changeRequestStatusAction, idleState);
   const [choice, setChoice] = useState<RequestStatus | null>(null);
   const [localError, setLocalError] = useState<string | undefined>();
@@ -74,7 +88,8 @@ export function StatusForm({ requestId, current, hasAssignee, customerName }: { 
           <legend className="text-sm font-medium text-ink">Move to</legend>
           <div className="mt-2 space-y-2">
             {allowed.map((status) => {
-              const blocked = needsAssignee(status) && !hasAssignee;
+              const reason = needsAssignee(status) && !hasAssignee ? "Assign a team member first." : unavailable?.[status];
+              const blocked = Boolean(reason);
               const id = `status-${status.toLowerCase()}`;
               return (
                 <label
@@ -99,7 +114,7 @@ export function StatusForm({ requestId, current, hasAssignee, customerName }: { 
                   <span className="min-w-0">
                     <span className={cn("block text-sm font-medium", blocked ? "text-ink-subtle" : "text-ink")}>{adminStatusLabels[status]}</span>
                     <span id={`${id}-hint`} className="block text-xs text-ink-muted">
-                      {blocked ? "Assign a team member first." : transitionHints[status]}
+                      {reason ?? transitionHints[status]}
                     </span>
                   </span>
                 </label>

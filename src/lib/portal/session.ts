@@ -68,6 +68,16 @@ export async function requireCustomer(returnTo?: string): Promise<Viewer> {
 }
 
 /**
+ * The signed-in customer, or null: the same check as `requireCustomer()`
+ * without redirecting, for routes that serve files rather than pages (they
+ * answer "not found" to everyone else).
+ */
+export async function getCustomer(): Promise<Viewer | null> {
+  const viewer = await getViewer();
+  return viewer?.profile.role === "CUSTOMER" ? viewer : null;
+}
+
+/**
  * Server-side error log for the portal. Only stable identifiers and error
  * codes are logged — never names, emails, addresses, tokens or free text.
  */

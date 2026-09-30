@@ -53,6 +53,44 @@ describe("private workspace headers", () => {
   });
 });
 
+describe("Content Security Policy and evidence files (Phase 2C)", () => {
+  const cspFor = async (source: string) => {
+    const rules = (await nextConfig.headers?.()) ?? [];
+    // Later rules win, as in Next.js: the last rule for a path that sets the header.
+    const matching = rules.filter((r) => r.source === "/:path*" || r.source === source);
+    const values = matching.flatMap((r) => r.headers.filter((h) => h.key === "Content-Security-Policy").map((h) => h.value));
+    return Object.fromEntries(values.at(-1)!.split("; ").map((d) => [d.split(" ")[0], d]));
+  };
+  const storage = new URL(siteConfig.portal.supabaseUrl ?? "http://unset.invalid").origin;
+
+  it("the public site loads nothing from Supabase and uploads nothing", async () => {
+    const csp = await cspFor("/services");
+    expect(csp["img-src"]).not.toContain(storage);
+    expect(csp["connect-src"]).not.toContain(storage);
+    expect(csp["media-src"]).toBeUndefined();
+  });
+
+  it("the customer portal may show evidence images and video from Supabase, but not upload", async () => {
+    for (const source of ["/app", "/app/:path*"]) {
+      const csp = await cspFor(source);
+      expect(csp["img-src"], source).toContain(storage);
+      expect(csp["media-src"], source).toContain(storage);
+      expect(csp["connect-src"], source).not.toContain(storage);
+      expect(csp["frame-ancestors"], source).toBe("frame-ancestors 'none'");
+    }
+  });
+
+  it("the admin console may also upload evidence to Supabase", async () => {
+    for (const source of ["/admin", "/admin/:path*"]) {
+      const csp = await cspFor(source);
+      expect(csp["img-src"], source).toContain(storage);
+      expect(csp["media-src"], source).toContain(storage);
+      expect(csp["connect-src"], source).toContain(storage);
+      expect(csp["object-src"], source).toBe("object-src 'none'");
+    }
+  });
+});
+
 describe("customer portal connection", () => {
   const { supabaseUrl, supabasePublishableKey } = siteConfig.portal;
 

@@ -9,11 +9,13 @@
 
 export type RecordedQuery = { table: string; op: "select" | "insert" | "update" | "delete"; payload?: unknown; filters: [string, ...unknown[]][] };
 export type RecordedRpc = { fn: string; args: Record<string, unknown> };
+export type RecordedStorage = { bucket: string; op: string; args: unknown[] };
 type Result = { data?: unknown; error?: unknown; count?: number | null };
 
 export function createFakeSupabase() {
   const queries: RecordedQuery[] = [];
   const rpcs: RecordedRpc[] = [];
+  const storageCalls: RecordedStorage[] = [];
   const results = new Map<string, Result>();
   const auth = {
     claims: null as Record<string, unknown> | null,
@@ -64,9 +66,24 @@ export function createFakeSupabase() {
     return { data: r.data ?? null, error: r.error ?? null };
   }
 
+  /** Storage calls are recorded and answered from canned results keyed by "storage.<method>". */
+  const storage = {
+    from(bucket: string) {
+      const op =
+        (name: string) =>
+        async (...args: unknown[]) => {
+          storageCalls.push({ bucket, op: name, args });
+          const r = results.get(`storage.${name}`) ?? { data: null, error: null };
+          return { data: r.data ?? null, error: r.error ?? null };
+        };
+      return { createSignedUploadUrl: op("createSignedUploadUrl"), createSignedUrl: op("createSignedUrl"), remove: op("remove"), list: op("list") };
+    },
+  };
+
   const client = {
     from,
     rpc,
+    storage,
     auth: {
       getClaims: async () => ({ data: auth.claims ? { claims: auth.claims } : null, error: null }),
       signInWithPassword: async (...args: unknown[]) => {
@@ -100,14 +117,16 @@ export function createFakeSupabase() {
     client,
     queries,
     rpcs,
+    storageCalls,
     auth,
-    /** Canned answer for e.g. "properties.insert" or "rpc.admin_assign_request". */
+    /** Canned answer for e.g. "properties.insert", "rpc.admin_assign_request" or "storage.createSignedUrl". */
     respond(key: string, result: Result) {
       results.set(key, result);
     },
     reset() {
       queries.length = 0;
       rpcs.length = 0;
+      storageCalls.length = 0;
       results.clear();
       auth.calls.length = 0;
       auth.claims = null;

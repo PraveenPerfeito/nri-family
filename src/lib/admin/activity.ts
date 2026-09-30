@@ -1,13 +1,15 @@
 import { adminRoutes } from "@/config/routes";
 import type { RequestStatus } from "@/lib/portal/domain";
 import type { ViewRow } from "@/types/database";
+import { evidenceKindLabels, evidenceStageLabels, type EvidenceKind, type EvidenceStage } from "@/lib/field-ops/domain";
 import { adminActivityLabels, adminStatusLabels, teamRoleLabels, type TeamRole } from "./domain";
 
 /*
  * Turns audit trail rows into readable lines for the team. Metadata holds
  * only field names and safe identifiers (request number, property name,
- * team member ids), never values such as addresses, phone numbers or the
- * text of notes, so nothing here can leak those either.
+ * team member ids, visit and evidence ids, the kind and stage of evidence),
+ * never values such as addresses, phone numbers, the text of notes or file
+ * locations, so nothing here can leak those either.
  */
 
 type FeedRow = ViewRow<"admin_activity_feed">;
@@ -90,6 +92,21 @@ export function describeAdminActivity(row: FeedRow, teamNames: Map<string, strin
       };
     case "REQUEST_UNASSIGNED":
       return { ...base, detail: join(text(m.request_number), person(m.previous_assignee_id) ? `was ${person(m.previous_assignee_id)}` : undefined), href: requestHref };
+    case "FIELD_WORK_CANCELLED":
+      return { ...base, detail: join(text(m.request_number), m.reason === "request_cancelled" ? "with the request" : undefined), href: requestHref };
+    case "EVIDENCE_UPLOADED":
+    case "EVIDENCE_APPROVED":
+    case "EVIDENCE_REJECTED":
+    case "EVIDENCE_PUBLISHED":
+      return {
+        ...base,
+        detail: join(
+          text(m.request_number),
+          evidenceKindLabels[m.kind as EvidenceKind]?.toLowerCase(),
+          m.stage ? evidenceStageLabels[m.stage as EvidenceStage]?.toLowerCase() : undefined,
+        ),
+        href: requestHref,
+      };
     default:
       return { ...base, detail: join(text(m.request_number), text(m.title)), href: requestHref };
   }

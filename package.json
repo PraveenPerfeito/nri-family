@@ -14,6 +14,7 @@
     "qa": "node scripts/qa.mjs",
     "qa:portal": "node --env-file-if-exists=.env.local scripts/portal-e2e.mjs",
     "qa:admin": "node --env-file-if-exists=.env.local scripts/admin-e2e.mjs",
+    "qa:field-ops": "node --env-file-if-exists=.env.local scripts/field-ops-e2e.mjs",
     "check": "npm run lint && npm run typecheck && npm run test && npm run build"
   },
   "dependencies": {

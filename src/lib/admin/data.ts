@@ -1,4 +1,5 @@
 import "server-only";
+import type { Evidence, EvidenceInternal, FieldWork, FieldWorkInternal } from "@/lib/field-ops/domain";
 import type { Profile, Property, RequestStatus, ServiceRequest, ServiceRequestEvent } from "@/lib/portal/domain";
 import { openRequestStatuses } from "@/lib/portal/domain";
 import { isUuid } from "@/lib/portal/validation";
@@ -169,6 +170,82 @@ export async function getAdminRequest(admin: AdminViewer, id: string): Promise<A
     events: timeline.map((e) => ({ ...e, author: e.created_by ? (names.get(e.created_by) ?? null) : null })),
     activity: must(activity, "request activity", admin),
     team: must(team, "team", admin),
+  };
+}
+
+// ── Field work and evidence (Phase 2C) ───────────────────────────────────────
+
+export type AdminVisit = FieldWork & { internal: FieldWorkInternal | null };
+export type AdminEvidence = Evidence & { internal: EvidenceInternal | null };
+
+/** A request's visits (newest first) and evidence (oldest first), each with the team's internal record. */
+export async function getAdminFieldOps(admin: AdminViewer, requestId: string): Promise<{ visits: AdminVisit[]; evidence: AdminEvidence[] }> {
+  if (!isUuid(requestId)) return { visits: [], evidence: [] };
+  const s = admin.supabase;
+  const [visitResult, evidenceResult] = await Promise.all([
+    s.from("field_work").select("*").eq("request_id", requestId).order("created_at", { ascending: false }).limit(20),
+    s.from("request_evidence").select("*").eq("request_id", requestId).order("created_at", { ascending: true }).limit(200),
+  ]);
+  const visits = must(visitResult, "visits", admin);
+  const evidence = must(evidenceResult, "evidence", admin);
+  const [notesResult, recordsResult] = await Promise.all([
+    visits.length > 0
+      ? s.from("field_work_internal").select("*").in("field_work_id", visits.map((v) => v.id))
+      : Promise.resolve({ data: [] as FieldWorkInternal[], error: null }),
+    evidence.length > 0
+      ? s.from("request_evidence_internal").select("*").in("evidence_id", evidence.map((e) => e.id))
+      : Promise.resolve({ data: [] as EvidenceInternal[], error: null }),
+  ]);
+  const notes = new Map(must(notesResult, "visit notes", admin).map((n) => [n.field_work_id, n]));
+  const records = new Map(must(recordsResult, "evidence records", admin).map((r) => [r.evidence_id, r]));
+  return {
+    visits: visits.map((v) => ({ ...v, internal: notes.get(v.id) ?? null })),
+    evidence: evidence.map((e) => ({ ...e, internal: records.get(e.id) ?? null })),
+  };
+}
+
+/** Where one piece of a request's evidence is stored, for the console's file link (null when it isn't there). */
+export async function getAdminEvidenceFile(admin: AdminViewer, requestId: string, evidenceId: string): Promise<{ path: string; kind: Evidence["kind"] } | null> {
+  if (!isUuid(requestId) || !isUuid(evidenceId)) return null;
+  const s = admin.supabase;
+  const [evidence, record] = await Promise.all([
+    s.from("request_evidence").select("id, kind").eq("id", evidenceId).eq("request_id", requestId).maybeSingle(),
+    s.from("request_evidence_internal").select("storage_path").eq("evidence_id", evidenceId).maybeSingle(),
+  ]);
+  const row = maybe(evidence, "evidence file", admin);
+  const file = maybe(record, "evidence file record", admin);
+  return row && file ? { path: file.storage_path, kind: row.kind } : null;
+}
+
+/** How many items the dashboard's field work panel lists of each kind. */
+export const FIELD_OPS_LIMIT = 6;
+
+type QueueRequest = Pick<InboxRow, "id" | "request_number" | "title" | "customer_name">;
+
+/**
+ * For the dashboard: requests with evidence waiting for review (oldest
+ * first; a request can't be completed until its evidence is reviewed), and
+ * the visits that are scheduled or in progress (soonest first).
+ */
+export async function getFieldOpsQueue(admin: AdminViewer) {
+  const s = admin.supabase;
+  const [pending, visits] = await Promise.all([
+    s.from("request_evidence").select("request_id", { count: "exact" }).eq("review_status", "PENDING_REVIEW").order("created_at", { ascending: true }).limit(500),
+    s.from("field_work").select("id, request_id, status, scheduled_start, scheduled_end", { count: "exact" }).in("status", ["SCHEDULED", "IN_PROGRESS"]).order("scheduled_start", { ascending: true }).limit(FIELD_OPS_LIMIT),
+  ]);
+  const waiting = new Map<string, number>();
+  for (const { request_id } of must(pending, "evidence waiting for review", admin)) waiting.set(request_id, (waiting.get(request_id) ?? 0) + 1);
+  const upcoming = must(visits, "open visits", admin);
+  const ids = [...new Set([...[...waiting.keys()].slice(0, FIELD_OPS_LIMIT), ...upcoming.map((v) => v.request_id)])];
+  const requests = ids.length > 0 ? must(await s.from("admin_request_inbox").select("id, request_number, title, customer_name").in("id", ids), "field work requests", admin) : [];
+  const byId = new Map<string, QueueRequest>(requests.map((r) => [r.id, r]));
+  return {
+    evidence: [...waiting]
+      .slice(0, FIELD_OPS_LIMIT)
+      .flatMap(([id, count]) => (byId.get(id) ? [{ request: byId.get(id)!, count }] : [])),
+    evidenceTotal: pending.count ?? 0,
+    visits: upcoming.flatMap((v) => (byId.get(v.request_id) ? [{ ...v, request: byId.get(v.request_id)! }] : [])),
+    visitTotal: visits.count ?? 0,
   };
 }
 

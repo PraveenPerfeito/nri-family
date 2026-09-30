@@ -63,6 +63,17 @@ export const adminActivityLabels: Record<string, string> = {
   REQUEST_UNASSIGNED: "Assignment removed",
   INTERNAL_NOTE_ADDED: "Internal note added",
   TEAM_UPDATE_POSTED: "Update sent to customer",
+  FIELD_WORK_SCHEDULED: "Visit scheduled",
+  FIELD_WORK_RESCHEDULED: "Visit rescheduled",
+  FIELD_WORK_UPDATED: "Visit instructions changed",
+  FIELD_WORK_STARTED: "Work started",
+  FIELD_WORK_NOTES_RECORDED: "Execution notes saved",
+  FIELD_WORK_COMPLETED: "Visit completed",
+  FIELD_WORK_CANCELLED: "Visit cancelled",
+  EVIDENCE_UPLOADED: "Evidence added",
+  EVIDENCE_APPROVED: "Evidence approved",
+  EVIDENCE_REJECTED: "Evidence rejected",
+  EVIDENCE_PUBLISHED: "Evidence shared with customer",
 };
 
 /** Longest internal note or customer update, in characters (the database checks the same). */

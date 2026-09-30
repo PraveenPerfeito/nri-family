@@ -2,7 +2,8 @@
 -- `node scripts/schema-fingerprint.mjs`, which runs the same query on the repository's
 -- migrations in a local Postgres. Equal hashes mean production matches the repository.
 -- Covers the public and app schemas: columns, constraints, indexes, triggers, policies,
--- RLS flags, function bodies, views, and what anonymous and signed-in users may do.
+-- RLS flags, function bodies, views, and what anonymous and signed-in users may do; and
+-- in Storage, its policies and the settings of the private evidence bucket (Phase 2C).
 with
 tables as (
   select c.oid, n.nspname, c.relname, c.relkind, c.relrowsecurity, c.relforcerowsecurity, c.reloptions
@@ -74,6 +75,15 @@ spriv as (
   from pg_namespace n cross join (values ('anon'), ('authenticated')) r(role)
   where n.nspname in ('public', 'app')
 ),
+-- Phase 2C: who may do what with evidence files, and the private bucket's settings.
+stpol as (
+  select format('%s.%s:%s:%s:%s:%s|%s', tablename, policyname, permissive, cmd, roles::text, coalesce(qual, ''), coalesce(with_check, '')) as e
+  from pg_policies where schemaname = 'storage'
+),
+bkt as (
+  select format('%s:%s:%s:%s', id, public, file_size_limit, allowed_mime_types::text) as e
+  from storage.buckets where id = 'request-evidence'
+),
 summary as (
   select 'a columns' as category, count(*) as items, left(md5(string_agg(e, E'\n' order by e collate "C")), 12) as hash from cols
   union all select 'b constraints', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from cons
@@ -87,7 +97,9 @@ summary as (
   union all select 'j column grants', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from cpriv
   union all select 'k function grants', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from fpriv
   union all select 'l schema usage', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from spriv
+  union all select 'm storage policies', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from stpol
+  union all select 'n evidence bucket', count(*), left(md5(string_agg(e, E'\n' order by e collate "C")), 12) from bkt
 )
 select category, items, hash from summary
-union all select 'm postgres', 0, current_setting('server_version')
+union all select 'o postgres', 0, current_setting('server_version')
 order by category;

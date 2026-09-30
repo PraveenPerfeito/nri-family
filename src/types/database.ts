@@ -1,6 +1,6 @@
 /**
  * Types for the Supabase database, in the shape `supabase gen types typescript`
- * produces. Hand-written to match supabase/migrations (Phase 2A + 2B);
+ * produces. Hand-written to match supabase/migrations (Phase 2A, 2B and 2C);
  * regenerate with the Supabase CLI once it is linked, and keep the two in step.
  *
  * Insert/Update types list only the columns customers are GRANTed, so code
@@ -112,7 +112,19 @@ export type Database = {
         Row: {
           id: string;
           request_id: string;
-          event_type: "REQUEST_CREATED" | "REQUEST_REVIEWED" | "STATUS_CHANGED" | "CUSTOMER_COMMENT" | "INTERNAL_NOTE" | "TEAM_UPDATE";
+          event_type:
+            | "REQUEST_CREATED"
+            | "REQUEST_REVIEWED"
+            | "STATUS_CHANGED"
+            | "CUSTOMER_COMMENT"
+            | "INTERNAL_NOTE"
+            | "TEAM_UPDATE"
+            | "FIELD_WORK_SCHEDULED"
+            | "FIELD_WORK_RESCHEDULED"
+            | "FIELD_WORK_STARTED"
+            | "FIELD_WORK_COMPLETED"
+            | "FIELD_WORK_CANCELLED"
+            | "EVIDENCE_AVAILABLE";
           title: string;
           description: string | null;
           visibility: "CUSTOMER" | "INTERNAL";
@@ -147,7 +159,7 @@ export type Database = {
         Row: {
           id: string;
           user_id: string;
-          type: "REQUEST_RECEIVED" | "REQUEST_STATUS_CHANGED" | "REQUEST_UPDATE" | "GENERAL";
+          type: "REQUEST_RECEIVED" | "REQUEST_STATUS_CHANGED" | "REQUEST_UPDATE" | "VISIT_UPDATE" | "EVIDENCE_AVAILABLE" | "GENERAL";
           title: string;
           message: string;
           entity_type: "PROPERTY" | "SERVICE_REQUEST" | null;
@@ -178,6 +190,86 @@ export type Database = {
           assignee_id: string;
           assigned_by: string | null;
           assigned_at: Timestamp;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /**
+       * Visits that carry out a request (Phase 2C). Every column may be shown to the
+       * request's customer, who can read their own rows; admins read all. Written only
+       * by the admin field-work functions. The team member is the request's assignee.
+       */
+      field_work: {
+        Row: {
+          id: string;
+          request_id: string;
+          customer_id: string;
+          status: "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
+          scheduled_start: Timestamp;
+          scheduled_end: Timestamp | null;
+          started_at: Timestamp | null;
+          completed_at: Timestamp | null;
+          cancelled_at: Timestamp | null;
+          /** "Service notes" for the customer, written when the visit is completed. */
+          summary: string | null;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /** The team's side of a visit: instructions and execution notes. Admins only. */
+      field_work_internal: {
+        Row: {
+          field_work_id: string;
+          instructions: string | null;
+          execution_notes: string | null;
+          updated_at: Timestamp;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /**
+       * Evidence of work (Phase 2C). Customers read a row only once it is APPROVED and
+       * published (CUSTOMER_VISIBLE); admins read all. Written only by the admin evidence functions.
+       */
+      request_evidence: {
+        Row: {
+          id: string;
+          request_id: string;
+          customer_id: string;
+          field_work_id: string | null;
+          kind: "PHOTO" | "VIDEO" | "DOCUMENT";
+          stage: "BEFORE" | "DURING" | "AFTER" | "GENERAL";
+          title: string;
+          description: string | null;
+          mime_type: string;
+          size_bytes: number;
+          captured_at: Timestamp | null;
+          review_status: "PENDING_REVIEW" | "APPROVED" | "REJECTED";
+          visibility: "INTERNAL" | "CUSTOMER_VISIBLE";
+          published_at: Timestamp | null;
+          created_at: Timestamp;
+          updated_at: Timestamp;
+        };
+        Insert: never;
+        Update: never;
+        Relationships: [];
+      };
+      /** The team's side of a piece of evidence: file location, uploader, review. Admins only. */
+      request_evidence_internal: {
+        Row: {
+          evidence_id: string;
+          storage_path: string;
+          original_name: string | null;
+          uploaded_by: string | null;
+          reviewed_by: string | null;
+          reviewed_at: Timestamp | null;
+          review_note: string | null;
+          published_by: string | null;
         };
         Insert: never;
         Update: never;
@@ -296,6 +388,56 @@ export type Database = {
       };
       admin_post_customer_update: {
         Args: { p_request_id: string; p_body: string };
+        Returns: undefined;
+      };
+      /** Phase 2C field work. Times are ISO timestamps; the database checks them in India time. */
+      admin_schedule_field_work: {
+        Args: { p_request_id: string; p_scheduled_start: string; p_scheduled_end: string | null; p_instructions: string | null };
+        Returns: string;
+      };
+      admin_reschedule_field_work: {
+        Args: { p_field_work_id: string; p_scheduled_start: string; p_scheduled_end: string | null; p_instructions: string | null };
+        Returns: undefined;
+      };
+      admin_start_field_work: {
+        Args: { p_field_work_id: string };
+        Returns: undefined;
+      };
+      admin_record_field_work_notes: {
+        Args: { p_field_work_id: string; p_execution_notes: string };
+        Returns: undefined;
+      };
+      admin_complete_field_work: {
+        Args: { p_field_work_id: string; p_summary: string | null; p_execution_notes: string | null };
+        Returns: undefined;
+      };
+      admin_cancel_field_work: {
+        Args: { p_field_work_id: string; p_expected_status: string };
+        Returns: undefined;
+      };
+      /** Phase 2C evidence. The file's type and size come from Storage, the uploader from the session. */
+      admin_add_evidence: {
+        Args: {
+          p_request_id: string;
+          p_evidence_id: string;
+          p_stage: string;
+          p_title: string;
+          p_description: string | null;
+          p_captured_at: string | null;
+          p_original_name: string | null;
+        };
+        Returns: undefined;
+      };
+      admin_approve_evidence: {
+        Args: { p_evidence_id: string };
+        Returns: undefined;
+      };
+      admin_reject_evidence: {
+        Args: { p_evidence_id: string; p_reason: string | null };
+        Returns: undefined;
+      };
+      admin_publish_evidence: {
+        Args: { p_evidence_id: string };
         Returns: undefined;
       };
     };

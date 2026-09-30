@@ -31,6 +31,10 @@ const messages: Record<string, string> = {
   request_closed: "This request is closed, so its assignment can't change.",
   invalid_assignee: "Please choose an active team member.",
   invalid_text: "Please write between 1 and 2,000 characters.",
+  // Completing a request that had field work (Phase 2C).
+  field_work_open: "Finish or cancel the field work before completing the request.",
+  evidence_pending: "Review every piece of evidence before completing the request.",
+  evidence_required: "Share at least one piece of evidence with the customer before completing the request.",
 };
 
 type RpcArgs = Record<string, string>;

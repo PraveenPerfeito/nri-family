@@ -89,5 +89,15 @@ export const adminRoutes = {
   activity: "/admin/activity",
 } as const;
 
+/**
+ * Evidence files (Phase 2C). Not pages: each one checks who is asking on
+ * every request, then redirects to a short-lived signed link to the file in
+ * the private bucket. Anyone else gets "not found".
+ */
+export const evidenceFileRoutes = {
+  customer: (requestId: string, evidenceId: string) => `/app/requests/${requestId}/evidence/${evidenceId}`,
+  admin: (requestId: string, evidenceId: string) => `/admin/requests/${requestId}/evidence/${evidenceId}`,
+} as const;
+
 /** Where auth emails land (Supabase confirmation / recovery links). */
 export const authCallbackPath = "/auth/confirm";

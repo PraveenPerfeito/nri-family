@@ -1,4 +1,5 @@
 import "server-only";
+import type { Evidence, FieldWork } from "@/lib/field-ops/domain";
 import type { ActivityLog, Notification, Property, RequestStatus, ServiceRequest, ServiceRequestEvent } from "./domain";
 import { openRequestStatuses } from "./domain";
 import { logPortalError, type Viewer } from "./session";
@@ -172,6 +173,59 @@ export async function getRequest(viewer: Viewer, id: string): Promise<RequestDet
     viewer,
   );
   return { ...(result.data as unknown as Omit<RequestDetail, "events">), events };
+}
+
+// ── Visits and evidence (Phase 2C) ───────────────────────────────────────────
+
+const CUSTOMER_VISIT = "id, status, scheduled_start, scheduled_end, started_at, completed_at, cancelled_at, summary, created_at";
+const CUSTOMER_EVIDENCE = "id, request_id, kind, stage, title, description, mime_type, captured_at, published_at";
+
+export type CustomerVisit = Pick<FieldWork, "id" | "status" | "scheduled_start" | "scheduled_end" | "started_at" | "completed_at" | "cancelled_at" | "summary" | "created_at">;
+export type CustomerEvidence = Pick<Evidence, "id" | "request_id" | "kind" | "stage" | "title" | "description" | "mime_type" | "captured_at" | "published_at">;
+
+/**
+ * The visits for one of the customer's own requests, and the evidence the
+ * team has published on it. RLS already returns nothing else (not another
+ * customer's rows, not evidence that is waiting for review, rejected or only
+ * approved internally); the filters repeat those conditions explicitly.
+ */
+export async function getRequestFieldOps(viewer: Viewer, requestId: string): Promise<{ visits: CustomerVisit[]; evidence: CustomerEvidence[] }> {
+  if (!isUuid(requestId)) return { visits: [], evidence: [] };
+  const [visits, evidence] = await Promise.all([
+    viewer.supabase
+      .from("field_work")
+      .select(CUSTOMER_VISIT)
+      .eq("request_id", requestId)
+      .eq("customer_id", viewer.profile.id)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    viewer.supabase
+      .from("request_evidence")
+      .select(CUSTOMER_EVIDENCE)
+      .eq("request_id", requestId)
+      .eq("customer_id", viewer.profile.id)
+      .eq("review_status", "APPROVED")
+      .eq("visibility", "CUSTOMER_VISIBLE")
+      .order("published_at", { ascending: true })
+      .limit(200),
+  ]);
+  return { visits: must(visits, "visits", viewer) as CustomerVisit[], evidence: must(evidence, "evidence", viewer) as CustomerEvidence[] };
+}
+
+/** One published piece of evidence on one of the customer's own requests, or null (missing and not theirs look the same). */
+export async function getPublishedEvidence(viewer: Viewer, requestId: string, evidenceId: string): Promise<CustomerEvidence | null> {
+  if (!isUuid(requestId) || !isUuid(evidenceId)) return null;
+  const result = await viewer.supabase
+    .from("request_evidence")
+    .select(CUSTOMER_EVIDENCE)
+    .eq("id", evidenceId)
+    .eq("request_id", requestId)
+    .eq("customer_id", viewer.profile.id)
+    .eq("review_status", "APPROVED")
+    .eq("visibility", "CUSTOMER_VISIBLE")
+    .maybeSingle();
+  if (result.error) must({ data: null, error: result.error }, "evidence", viewer);
+  return (result.data as CustomerEvidence | null) ?? null;
 }
 
 // ── Activity and notifications ───────────────────────────────────────────────

@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, CheckCircle2, ClipboardList, Users } from "lucide-react";
+import { Building2, CalendarClock, Camera, CheckCircle2, ClipboardList, Users } from "lucide-react";
 import { AdminActivityList, RequestTable } from "@/components/admin/lists";
-import { AdminStatusBadge } from "@/components/admin/ui";
+import { AdminStatusBadge, VisitStatusBadge } from "@/components/admin/ui";
 import { EmptyState, PageHeader, Panel, StatCard } from "@/components/portal/ui/primitives";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { adminRoutes } from "@/config/routes";
-import { ATTENTION_LIMIT, getAdminDashboard, teamNames } from "@/lib/admin/data";
+import { ATTENTION_LIMIT, getAdminDashboard, getFieldOpsQueue, teamNames } from "@/lib/admin/data";
 import { adminStatusLabels } from "@/lib/admin/domain";
 import { requireAdmin } from "@/lib/admin/session";
+import { formatVisitWindow } from "@/lib/field-ops/schedule";
 import type { RequestStatus } from "@/lib/portal/domain";
 import { formatDate } from "@/lib/portal/format";
 
@@ -26,7 +27,7 @@ const statusCards: { status: RequestStatus; hint: string }[] = [
 
 export default async function AdminDashboardPage() {
   const admin = await requireAdmin(adminRoutes.dashboard);
-  const [data, names] = await Promise.all([getAdminDashboard(admin), teamNames(admin)]);
+  const [data, names, fieldOps] = await Promise.all([getAdminDashboard(admin), teamNames(admin), getFieldOpsQueue(admin)]);
   const tz = admin.profile.timezone;
 
   return (
@@ -112,6 +113,56 @@ export default async function AdminDashboardPage() {
           )}
         </Panel>
       </div>
+
+      <Panel title="Field work" labelledBy="field-work" bodyClassName="grid gap-6 px-5 py-4 md:grid-cols-2">
+        <section aria-labelledby="evidence-waiting">
+          <h3 id="evidence-waiting" className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <Camera aria-hidden className="size-4 text-ink-muted" strokeWidth={1.75} />
+            Evidence waiting for review <span className="font-normal text-ink-subtle">({fieldOps.evidenceTotal})</span>
+          </h3>
+          {fieldOps.evidence.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-muted">Nothing to review.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-line-subtle">
+              {fieldOps.evidence.map(({ request, count }) => (
+                <li key={request.id}>
+                  <Link href={adminRoutes.request(request.id)} className="block py-2.5 hover:text-brand">
+                    <span className="text-xs font-semibold text-ink-subtle tabular-nums">{request.request_number}</span>
+                    <span className="block text-sm font-medium break-words text-ink">{request.title}</span>
+                    <span className="block text-xs text-ink-muted">
+                      {request.customer_name} · {count} {count === 1 ? "piece" : "pieces"} of evidence
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+        <section aria-labelledby="upcoming-visits">
+          <h3 id="upcoming-visits" className="flex items-center gap-2 text-sm font-semibold text-ink">
+            <CalendarClock aria-hidden className="size-4 text-ink-muted" strokeWidth={1.75} />
+            Scheduled and in progress <span className="font-normal text-ink-subtle">({fieldOps.visitTotal})</span>
+          </h3>
+          {fieldOps.visits.length === 0 ? (
+            <p className="mt-2 text-sm text-ink-muted">No visits planned.</p>
+          ) : (
+            <ul className="mt-2 divide-y divide-line-subtle">
+              {fieldOps.visits.map((v) => (
+                <li key={v.id}>
+                  <Link href={adminRoutes.request(v.request_id)} className="block py-2.5 hover:text-brand">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-ink-subtle tabular-nums">{v.request.request_number}</span>
+                      <VisitStatusBadge state={v.status} />
+                    </span>
+                    <span className="block text-sm font-medium break-words text-ink">{v.request.title}</span>
+                    <span className="block text-xs text-ink-muted">{formatVisitWindow(v.scheduled_start, v.scheduled_end)} India time</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </Panel>
 
       <section aria-labelledby="recent-requests" className="space-y-3">
         <div className="flex items-end justify-between gap-3">

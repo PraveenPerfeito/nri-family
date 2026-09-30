@@ -1,9 +1,17 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, Eye, Lock } from "lucide-react";
+import { Ban, CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Eye, Hourglass, Lock } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { buttonClasses } from "@/components/ui/button";
 import { adminStatusLabels, teamRoleLabels, type TeamRole } from "@/lib/admin/domain";
+import {
+  evidenceReviewLabels,
+  evidenceStageLabels,
+  visitStatusLabels,
+  type EvidenceReviewStatus,
+  type EvidenceStage,
+  type VisitState,
+} from "@/lib/field-ops/domain";
 import type { RequestStatus } from "@/lib/portal/domain";
 import { cn } from "@/lib/utils/cn";
 
@@ -45,6 +53,39 @@ export function VisibilityBadge({ internal }: { internal: boolean }) {
       Customer visible
     </Badge>
   );
+}
+
+const visitTones: Record<VisitState, "info" | "brand" | "good" | "neutral"> = {
+  NOT_SCHEDULED: "neutral",
+  SCHEDULED: "info",
+  IN_PROGRESS: "brand",
+  COMPLETED: "good",
+  CANCELLED: "neutral",
+};
+
+/** A visit's state (distinct from the request's status: calendar icon, "Visit" in the label). */
+export function VisitStatusBadge({ state }: { state: VisitState }) {
+  return (
+    <Badge tone={visitTones[state]}>
+      <CalendarClock aria-hidden className="size-3" strokeWidth={2.25} />
+      Visit: {visitStatusLabels[state].toLowerCase()}
+    </Badge>
+  );
+}
+
+/** Where a piece of evidence is in review. */
+export function EvidenceReviewBadge({ status }: { status: EvidenceReviewStatus }) {
+  const Icon = status === "APPROVED" ? CheckCircle2 : status === "REJECTED" ? Ban : Hourglass;
+  return (
+    <Badge tone={status === "APPROVED" ? "good" : status === "REJECTED" ? "neutral" : "attention"}>
+      <Icon aria-hidden className="size-3" strokeWidth={2.25} />
+      {evidenceReviewLabels[status]}
+    </Badge>
+  );
+}
+
+export function EvidenceStageBadge({ stage }: { stage: EvidenceStage }) {
+  return <Badge>{evidenceStageLabels[stage]}</Badge>;
 }
 
 export function RoleBadge({ role }: { role: TeamRole }) {

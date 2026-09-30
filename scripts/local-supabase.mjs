@@ -10,9 +10,13 @@
  * claims, so Row Level Security, column privileges, constraints and triggers
  * behave exactly as in Supabase.
  *
- * What is emulated: Auth (GoTrue) and the REST API (PostgREST), only the
- * endpoints and query features supabase-js uses in this app (tables, views
- * and POST /rest/v1/rpc/<function> with named arguments). Differences
+ * What is emulated: Auth (GoTrue), the REST API (PostgREST) and Storage, only
+ * the endpoints and query features supabase-js uses in this app (tables,
+ * views, POST /rest/v1/rpc/<function> with named arguments, and for Storage:
+ * signed upload links, signed download links with Range requests, list and
+ * delete). Storage permission checks run the real Storage RLS policies in
+ * PGlite as the caller, like the Storage API does; files are kept in memory.
+ * Differences
  * from a real project: tokens are HS256 (so getClaims() verifies through
  * /auth/v1/user rather than JWKS), no email is sent (links are printed and
  * listed at /__mail), sign-up rate limits and password-strength rules beyond
@@ -580,20 +584,188 @@ async function handleRpc(method, name, headers, body) {
     });
 }
 
+// ── Storage (Storage API emulation over the real storage schema and policies) ──
+// Files are kept in memory. Every permission check runs as the caller (their
+// role and JWT claims) against storage.objects, so the migration's Storage
+// RLS policies decide, as they do in Supabase. Signed links are HS256 tokens
+// naming one bucket/path; uploads through them are written without RLS,
+// exactly like Supabase's signed uploads (the check happened when the link
+// was created).
+const files = new Map(); // "bucket/path" -> Buffer
+const CORS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET, HEAD, POST, PUT, DELETE, OPTIONS",
+  "access-control-allow-headers": "authorization, apikey, content-type, x-upsert, x-client-info, cache-control, range",
+  "access-control-expose-headers": "content-range, content-length, accept-ranges",
+};
+const storageError = (status, code, message) => ({ status: 400, body: { statusCode: String(status), error: code, message } });
+
+function splitObjectPath(rest) {
+  const [bucket, ...parts] = rest.split("/").filter(Boolean).map((p) => decodeURIComponent(p));
+  return { bucket, name: parts.join("/") };
+}
+
+async function asCaller(headers, fn) {
+  const { role, claims } = roleFor(headers);
+  return db.transaction(async (tx) => {
+    await tx.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
+    await tx.exec(`set local role ${role}`);
+    return fn(tx, claims);
+  });
+}
+
+class Rollback extends Error {}
+
+async function handleStorage(method, path, query, headers, body, bytes) {
+  try {
+    // Signed upload: PUT /object/upload/sign/<bucket>/<path>?token=… (no other credentials needed).
+    let m = path.match(/^\/object\/upload\/sign\/(.+)$/);
+    if (m && method === "PUT") {
+      const { bucket, name } = splitObjectPath(m[1]);
+      const claims = verifyJwt(query.get("token"));
+      if (!claims || claims.kind !== "upload" || claims.url !== `${bucket}/${name}`) return storageError(400, "InvalidJWT", "invalid signature");
+      const limits = (await db.query("select file_size_limit, allowed_mime_types from storage.buckets where id = $1", [bucket])).rows[0];
+      if (!limits) return storageError(404, "Bucket not found", "Bucket not found");
+      const mimetype = String(headers["content-type"] ?? "application/octet-stream").split(";")[0].trim().toLowerCase();
+      if (limits.allowed_mime_types?.length && !limits.allowed_mime_types.includes(mimetype)) return storageError(415, "invalid_mime_type", `mime type ${mimetype} is not supported`);
+      if (limits.file_size_limit && bytes.length > Number(limits.file_size_limit)) return storageError(413, "Payload too large", "The object exceeded the maximum allowed size");
+      const exists = await db.query("select 1 from storage.objects where bucket_id = $1 and name = $2", [bucket, name]);
+      if (exists.rows.length) return storageError(409, "Duplicate", "The resource already exists");
+      const metadata = {
+        eTag: `"${createHash("md5").update(bytes).digest("hex")}"`,
+        size: bytes.length,
+        mimetype,
+        cacheControl: "no-cache",
+        lastModified: new Date().toUTCString(),
+        contentLength: bytes.length,
+        httpStatusCode: 200,
+      };
+      await db.query("insert into storage.objects (bucket_id, name, owner, metadata) values ($1, $2, $3, $4)", [bucket, name, claims.owner ?? null, JSON.stringify(metadata)]);
+      files.set(`${bucket}/${name}`, Buffer.from(bytes));
+      return { status: 200, body: { Key: `${bucket}/${name}` } };
+    }
+    // Create a signed upload link: only if the caller may insert the object (a probe, rolled back).
+    if (m && method === "POST") {
+      const { bucket, name } = splitObjectPath(m[1]);
+      let owner = null;
+      try {
+        await asCaller(headers, async (tx, claims) => {
+          owner = claims.sub ?? null;
+          await tx.query("insert into storage.objects (bucket_id, name, owner, metadata) values ($1, $2, $3, '{}')", [bucket, name, owner]);
+          throw new Rollback();
+        });
+      } catch (error) {
+        if (!(error instanceof Rollback)) {
+          if (error.rest) return error.rest;
+          if (error.code === "23505") return storageError(409, "Duplicate", "The resource already exists");
+          return storageError(403, "Unauthorized", "new row violates row-level security policy");
+        }
+      }
+      const token = signJwt({ kind: "upload", url: `${bucket}/${name}`, owner, exp: Math.floor(Date.now() / 1000) + 7200 });
+      return { status: 200, body: { url: `/object/upload/sign/${bucket}/${name}?token=${token}` } };
+    }
+    // Signed download: GET /object/sign/<bucket>/<path>?token=… (Range supported).
+    m = path.match(/^\/object\/sign\/(.+)$/);
+    if (m && (method === "GET" || method === "HEAD")) {
+      const { bucket, name } = splitObjectPath(m[1]);
+      const claims = verifyJwt(query.get("token"));
+      if (!claims || claims.kind !== "download" || claims.url !== `${bucket}/${name}`) return storageError(400, "InvalidJWT", "jwt expired or invalid");
+      const file = files.get(`${bucket}/${name}`);
+      const row = (await db.query("select metadata from storage.objects where bucket_id = $1 and name = $2", [bucket, name])).rows[0];
+      if (!file || !row) return storageError(404, "not_found", "Object not found");
+      const type = row.metadata?.mimetype ?? "application/octet-stream";
+      const range = String(headers.range ?? "").match(/^bytes=(\d*)-(\d*)$/);
+      if (range && (range[1] || range[2])) {
+        const start = range[1] ? Number(range[1]) : Math.max(0, file.length - Number(range[2]));
+        const end = range[1] && range[2] ? Math.min(Number(range[2]), file.length - 1) : file.length - 1;
+        if (start >= file.length || start > end) return { status: 416, raw: Buffer.alloc(0), headers: { "content-range": `bytes */${file.length}` } };
+        const part = file.subarray(start, end + 1);
+        return {
+          status: 206,
+          raw: method === "HEAD" ? Buffer.alloc(0) : part,
+          headers: { "content-type": type, "content-length": String(part.length), "content-range": `bytes ${start}-${end}/${file.length}`, "accept-ranges": "bytes", "cache-control": "no-cache" },
+        };
+      }
+      return { status: 200, raw: method === "HEAD" ? Buffer.alloc(0) : file, headers: { "content-type": type, "content-length": String(file.length), "accept-ranges": "bytes", "cache-control": "no-cache" } };
+    }
+    // Create a signed download link: only if the caller may read the object (SELECT policies).
+    if (m && method === "POST") {
+      const { bucket, name } = splitObjectPath(m[1]);
+      const found = await asCaller(headers, (tx) => tx.query("select 1 from storage.objects where bucket_id = $1 and name = $2", [bucket, name]));
+      if (found.rows.length === 0) return storageError(404, "not_found", "Object not found");
+      const seconds = Math.max(1, Math.min(Number(body.expiresIn) || 60, 60 * 60 * 24 * 7));
+      const token = signJwt({ kind: "download", url: `${bucket}/${name}`, exp: Math.floor(Date.now() / 1000) + seconds });
+      return { status: 200, body: { signedURL: `/object/sign/${bucket}/${name}?token=${token}` } };
+    }
+    // List one level under a prefix (folders have id null), as the caller.
+    m = path.match(/^\/object\/list\/([^/]+)$/);
+    if (m && method === "POST") {
+      const bucket = decodeURIComponent(m[1]);
+      const prefix = String(body.prefix ?? "").replace(/^\/+|\/+$/g, "");
+      const like = prefix ? `${prefix}/%` : "%";
+      const rows = (await asCaller(headers, (tx) => tx.query("select id, name, created_at, updated_at, metadata from storage.objects where bucket_id = $1 and name like $2 order by name", [bucket, like]))).rows;
+      const seen = new Map();
+      for (const row of rows) {
+        const rest = prefix ? row.name.slice(prefix.length + 1) : row.name;
+        const [first, ...more] = rest.split("/");
+        if (more.length > 0) seen.set(first, seen.get(first) ?? { name: first, id: null, updated_at: null, created_at: null, last_accessed_at: null, metadata: null });
+        else seen.set(first, { name: first, id: row.id, updated_at: row.updated_at, created_at: row.created_at, last_accessed_at: row.updated_at, metadata: row.metadata });
+      }
+      const offset = Number(body.offset ?? 0);
+      const limit = Number(body.limit ?? 100);
+      return { status: 200, body: [...seen.values()].slice(offset, offset + limit) };
+    }
+    // A bucket's settings, as the caller (the service key reads any bucket).
+    m = path.match(/^\/bucket\/([^/]+)$/);
+    if (m && method === "GET") {
+      const id = decodeURIComponent(m[1]);
+      const rows = (await asCaller(headers, (tx) => tx.query("select id, name, owner, public, file_size_limit, allowed_mime_types, created_at, updated_at from storage.buckets where id = $1", [id]))).rows;
+      if (rows.length === 0) return storageError(404, "Bucket not found", "Bucket not found");
+      return { status: 200, body: { ...rows[0], file_size_limit: rows[0].file_size_limit === null ? null : Number(rows[0].file_size_limit) } };
+    }
+    // Delete: DELETE /object/<bucket> { prefixes: [...] }, as the caller (DELETE policies decide).
+    m = path.match(/^\/object\/([^/]+)$/);
+    if (m && method === "DELETE") {
+      const bucket = decodeURIComponent(m[1]);
+      const names = Array.isArray(body.prefixes) ? body.prefixes.map(String) : [];
+      const removed = (
+        await asCaller(headers, async (tx) => {
+          await tx.query("select set_config('storage.allow_delete_query', 'true', true)");
+          return tx.query("delete from storage.objects where bucket_id = $1 and name = any($2) returning name, id, metadata", [bucket, names]);
+        })
+      ).rows;
+      for (const row of removed) files.delete(`${bucket}/${row.name}`);
+      return { status: 200, body: removed.map((r) => ({ name: r.name, id: r.id, metadata: r.metadata, bucket_id: bucket })) };
+    }
+    return storageError(404, "not_found", `No storage route ${method} ${path}`);
+  } catch (error) {
+    if (error.rest) return error.rest;
+    console.error(error);
+    return storageError(500, "internal", "Internal error");
+  }
+}
+
 // ── HTTP ────────────────────────────────────────────────────────────────────
 const server = createServer(async (req, res) => {
   const url = new URL(req.url, BASE);
-  let raw = "";
-  for await (const chunk of req) raw += chunk;
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
+  const bytes = Buffer.concat(chunks);
+  // Uploads are binary; everything else is JSON.
+  const binary = url.pathname.startsWith("/storage/v1/object/upload/sign/") && req.method === "PUT";
   let body = {};
   try {
-    body = raw ? JSON.parse(raw) : {};
+    body = bytes.length && !binary ? JSON.parse(bytes.toString("utf8")) : {};
   } catch {
     body = {};
   }
   let result;
   try {
-    if (url.pathname === "/__mail") {
+    if (req.method === "OPTIONS") {
+      result = { status: 204, headers: CORS, body: null };
+    } else if (url.pathname.startsWith("/storage/v1/")) {
+      result = await handleStorage(req.method, url.pathname.slice("/storage/v1".length), url.searchParams, req.headers, body, bytes);
+    } else if (url.pathname === "/__mail") {
       const to = url.searchParams.get("email")?.toLowerCase();
       result = { status: 200, body: mail.filter((m) => !to || m.to === to) };
     } else if (url.pathname.startsWith("/auth/v1")) {
@@ -607,8 +779,14 @@ const server = createServer(async (req, res) => {
     console.error(error);
     result = error.rest ?? { status: 500, body: { message: String(error.message) } };
   }
-  if (process.env.LOG === "true") console.log(`${req.method} ${url.pathname}${url.search} → ${result.status}`);
-  res.writeHead(result.status, { "content-type": "application/json; charset=utf-8", ...(result.headers ?? {}) });
+  // (Paths only: signed links carry their token in the query string.)
+  if (process.env.LOG === "true") console.log(`${req.method} ${url.pathname} → ${result.status}`);
+  if (result.raw) {
+    res.writeHead(result.status, { ...CORS, ...(result.headers ?? {}) });
+    res.end(result.raw);
+    return;
+  }
+  res.writeHead(result.status, { "content-type": "application/json; charset=utf-8", ...CORS, ...(result.headers ?? {}) });
   res.end(result.body === null || result.body === undefined ? "" : JSON.stringify(result.body));
 });
 server.listen(PORT, "127.0.0.1", () =>

@@ -358,7 +358,9 @@ Not built, and not stubbed:
 
 ## 17. Phase 2C handoff
 
-What 2C (vendor operations) can build on:
+Phase 2C became **field operations and evidence** ([PHASE_2C.md](PHASE_2C.md)); it follows the admin pattern below and reuses `request_assignments` for who carries out a visit. The notes on vendors still apply to a later phase.
+
+What a later phase (vendor operations) can build on:
 
 - **The admin pattern:** `requireAdmin()` in every page and action, admin reads through policies beside the existing ones, and writes only through `SECURITY DEFINER` functions that check the caller first and raise stable error keys. New staff features should follow it.
 - **Assignments.** `request_assignments` names the internal person responsible. Vendors should get their own table (for example `vendor_assignments`) with vendor-scoped RLS, rather than overloading this one.

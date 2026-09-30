@@ -1,12 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MessageCircleQuestion, XCircle } from "lucide-react";
+import { EvidenceGallery } from "@/components/portal/requests/evidence-gallery";
 import { RequestTimeline } from "@/components/portal/requests/request-timeline";
+import { ServiceVisit } from "@/components/portal/requests/service-visit";
 import { ConfirmAction } from "@/components/portal/ui/confirm-action";
 import { DetailList, PageHeader, Panel, PriorityBadge, RequestStatusBadge, SavedNotice } from "@/components/portal/ui/primitives";
 import { portalRoutes } from "@/config/routes";
 import { cancelRequestAction } from "@/lib/portal/actions/requests";
-import { getRequest } from "@/lib/portal/data";
+import { currentVisit } from "@/lib/field-ops/domain";
+import { getRequest, getRequestFieldOps } from "@/lib/portal/data";
 import { canCancelRequest, labelOf, requestCategories } from "@/lib/portal/domain";
 import { formatDate } from "@/lib/portal/format";
 import { requireCustomer } from "@/lib/portal/session";
@@ -21,8 +24,9 @@ const savedMessages: Record<string, string> = {
 export default async function RequestPage(props: PageProps<"/app/requests/[id]">) {
   const { id } = await props.params;
   const viewer = await requireCustomer(portalRoutes.request(id));
-  const request = await getRequest(viewer, id);
+  const [request, fieldOps] = await Promise.all([getRequest(viewer, id), getRequestFieldOps(viewer, id)]);
   if (!request) notFound();
+  const visit = currentVisit(fieldOps.visits);
   const { saved } = await props.searchParams;
   const tz = viewer.profile.timezone;
 
@@ -56,7 +60,20 @@ export default async function RequestPage(props: PageProps<"/app/requests/[id]">
         </section>
       ) : null}
 
+      {fieldOps.evidence.length > 0 ? (
+        <Panel title="Evidence" labelledBy="request-evidence">
+          <p className="mb-5 text-sm text-ink-muted">Photos and documents from our team, checked before they were shared with you.</p>
+          <EvidenceGallery evidence={fieldOps.evidence} timezone={tz} />
+        </Panel>
+      ) : null}
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="min-w-0 space-y-6">
+          {visit ? (
+            <Panel title="Service visit" labelledBy="service-visit">
+              <ServiceVisit visit={visit} timezone={tz} awaitingEvidence={visit.status === "COMPLETED" && fieldOps.evidence.length === 0} />
+            </Panel>
+          ) : null}
         <Panel title="Details" labelledBy="request-details">
           <DetailList
             items={[
@@ -77,6 +94,7 @@ export default async function RequestPage(props: PageProps<"/app/requests/[id]">
             ]}
           />
         </Panel>
+        </div>
 
         <Panel title="Timeline" labelledBy="request-timeline">
           <RequestTimeline events={request.events} status={request.status} timezone={tz} />

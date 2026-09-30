@@ -4,7 +4,7 @@
 
 > **Branding is not confirmed.** "NRI Family Office" is a neutral working name. The final brand name and domain go in the settings block at the top of [src/config/site.ts](src/config/site.ts); the placeholder mark is in [src/components/layout/logo.tsx](src/components/layout/logo.tsx).
 
-The Digital Family Office platform for NRIs with property, assets and family in Tamil Nadu. This app holds the public website (Layer 1), the customer portal foundation (`/app`, [docs/PHASE_2A.md](docs/PHASE_2A.md)) and the team's admin operations console (`/admin`, [docs/PHASE_2B.md](docs/PHASE_2B.md)). The vendor and partner portals will be added to this same app later. See [docs/phase-1/future-architecture.md](docs/phase-1/future-architecture.md).
+The Digital Family Office platform for NRIs with property, assets and family in Tamil Nadu. This app holds the public website (Layer 1), the customer portal foundation (`/app`, [docs/PHASE_2A.md](docs/PHASE_2A.md)) the team's admin operations console (`/admin`, [docs/PHASE_2B.md](docs/PHASE_2B.md)), and field operations with evidence: visits, photos, videos and documents, reviewed and explicitly shared with the customer ([docs/PHASE_2C.md](docs/PHASE_2C.md)). The vendor and partner portals will be added to this same app later. See [docs/phase-1/future-architecture.md](docs/phase-1/future-architecture.md).
 
 ## Stack
 
@@ -43,6 +43,7 @@ Forms work in development without configuration. Submissions are validated and l
 | `npm run qa` | Browser QA against a running server. See [docs/phase-1/testing.md](docs/phase-1/testing.md) |
 | `npm run dev:supabase` | Local Supabase stand-in for development (real migrations in PGlite). See [docs/PHASE_2A.md](docs/PHASE_2A.md) |
 | `npm run qa:portal` / `npm run qa:admin` | Customer portal / admin console acceptance tests in a real browser. See [docs/PHASE_2A.md](docs/PHASE_2A.md) and [docs/PHASE_2B.md](docs/PHASE_2B.md) |
+| `npm run qa:field-ops` | Field operations and evidence acceptance test in a real browser. See [docs/PHASE_2C.md](docs/PHASE_2C.md) |
 
 ## Project layout
 
@@ -65,13 +66,13 @@ src/
     portal/, admin/  Customer portal and admin console UI
   config/            site, routes, navigation, services, form options
   data/              Marketing copy, FAQ and FICTIONAL demo data
-  lib/               seo, validation, leads (server actions), analytics, security, supabase, portal, admin
+  lib/               seo, validation, leads (server actions), analytics, security, supabase, portal, admin, field-ops
   types/             Shared domain vocabulary (visibility, roles, request stages)
-supabase/migrations/ Database schema, RLS and triggers (Phase 2A, Phase 2B)
+supabase/migrations/ Database schema, RLS, triggers and Storage policies (Phase 2A, 2B, 2C)
 tests/               Vitest unit tests (tests/db: the migrations in real Postgres)
 scripts/             Browser quality gate, acceptance tests, local Supabase stand-in
 docs/phase-1/        Product, IA, design system, routes, SEO, security, architecture, testing, spec compliance
-docs/PHASE_2A.md, docs/PHASE_2B.md  The customer portal and the admin console
+docs/PHASE_2A.md, docs/PHASE_2B.md, docs/PHASE_2C.md  The customer portal, the admin console, field operations and evidence
 ```
 
 ## Ground rules

@@ -7,6 +7,12 @@ export type ActionState = {
   fieldErrors?: FieldErrors;
   /** Set by sign-in when the account exists but the email is not confirmed yet. */
   needsConfirmation?: boolean;
+  /**
+   * Set (admin console) when the refusal comes with a refresh of the page,
+   * because someone else changed the record: the form that was used may be
+   * replaced, so the message is shown at panel level instead.
+   */
+  refreshed?: boolean;
 };
 
 export const idleState: ActionState = { status: "idle" };

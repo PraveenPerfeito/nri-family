@@ -4,15 +4,18 @@ import { notFound } from "next/navigation";
 import { AdminActivityList } from "@/components/admin/lists";
 import { AdminTimeline } from "@/components/admin/requests/admin-timeline";
 import { AssignmentForm } from "@/components/admin/requests/assignment-form";
+import { EvidencePanel } from "@/components/admin/requests/evidence-panel";
+import { FieldWorkPanel } from "@/components/admin/requests/field-work-panel";
 import { NoteForm } from "@/components/admin/requests/note-form";
 import { StatusForm } from "@/components/admin/requests/status-form";
 import { AdminStatusBadge, Breadcrumbs } from "@/components/admin/ui";
 import { DetailList, PageHeader, Panel, PropertyStatusBadge } from "@/components/portal/ui/primitives";
 import { Badge } from "@/components/ui/badge";
 import { adminRoutes } from "@/config/routes";
-import { getAdminRequest, teamNames } from "@/lib/admin/data";
+import { getAdminFieldOps, getAdminRequest, teamNames } from "@/lib/admin/data";
 import type { TeamRole } from "@/lib/admin/domain";
 import { requireAdmin } from "@/lib/admin/session";
+import { completionBlocker, completionBlockerMessages } from "@/lib/field-ops/domain";
 import { labelOf, ownershipTypes, propertyTypes, requestCategories } from "@/lib/portal/domain";
 import { formatDate, formatDateTime, formatTime, zoneOf } from "@/lib/portal/format";
 import { countryName } from "@/lib/portal/places";
@@ -23,7 +26,7 @@ export const metadata: Metadata = { title: "Request" };
 export default async function AdminRequestPage(props: PageProps<"/admin/requests/[id]">) {
   const { id } = await props.params;
   const admin = await requireAdmin(isUuid(id) ? adminRoutes.request(id) : adminRoutes.requests);
-  const [detail, names] = await Promise.all([getAdminRequest(admin, id), teamNames(admin)]);
+  const [detail, names, fieldOps] = await Promise.all([getAdminRequest(admin, id), teamNames(admin), getAdminFieldOps(admin, id)]);
   if (!detail) notFound();
   const { request, inbox, customer, property, otherProperties, events, activity, team } = detail;
   const tz = admin.profile.timezone;
@@ -31,6 +34,8 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
   const address = property ? [property.address_line_1, property.address_line_2].filter(Boolean).join(", ") : "";
   // Only an active team member counts as responsible (the database checks the same).
   const assigneeActive = Boolean(inbox.assignee_id) && team.some((m) => m.profile_id === inbox.assignee_id);
+  // A request with field work completes only once the visit is done and its evidence handled (the database checks the same).
+  const blocker = completionBlocker(fieldOps.visits, fieldOps.evidence);
 
   return (
     <div className="space-y-6">
@@ -76,7 +81,13 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
             <div className="mb-4 flex items-center gap-2 text-sm text-ink-muted">
               Now: <AdminStatusBadge status={request.status} />
             </div>
-            <StatusForm requestId={request.id} current={request.status} hasAssignee={assigneeActive} customerName={customerName} />
+            <StatusForm
+              requestId={request.id}
+              current={request.status}
+              hasAssignee={assigneeActive}
+              customerName={customerName}
+              unavailable={blocker ? { COMPLETED: completionBlockerMessages[blocker] } : undefined}
+            />
           </Panel>
 
           <Panel title="Assignment" labelledBy="assignment">
@@ -166,6 +177,20 @@ export default async function AdminRequestPage(props: PageProps<"/admin/requests
         </div>
 
         <div className="min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
+          <Panel title="Field work" labelledBy="field-work">
+            <FieldWorkPanel
+              requestId={request.id}
+              requestStatus={request.status}
+              visits={fieldOps.visits}
+              assignee={inbox.assignee_id ? { name: inbox.assignee_name ?? "Former team member", active: assigneeActive } : null}
+              customerName={customerName}
+            />
+          </Panel>
+
+          <Panel title="Evidence" labelledBy="evidence">
+            <EvidencePanel requestId={request.id} requestStatus={request.status} evidence={fieldOps.evidence} customerName={customerName} names={names} timezone={tz} />
+          </Panel>
+
           <Panel title="Timeline" labelledBy="timeline">
             <AdminTimeline events={events} timezone={tz} />
           </Panel>
