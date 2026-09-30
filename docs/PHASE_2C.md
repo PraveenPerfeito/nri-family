@@ -298,6 +298,8 @@ Five throwaway accounts (`nfo-2c-e2e-<run>-{a,b,admin,ops,ops2}@example.net`) an
 22. customer B sees only their own, and replaying the admin's share action changes nothing;
 23. a deactivated admin loses file links, functions and reads at once.
 
+In Firefox, the console shows “Cookie “__cf_bm” has been rejected for invalid domain” while evidence files load. Supabase’s CDN (Cloudflare) tries to set its bot-management cookie on `supabase.co`, which is a public suffix, so Firefox refuses it. It is harmless (the files load) and not the app’s to change; the acceptance test ignores exactly this message in Firefox, and nothing else.
+
 Run it like the Phase 2B test (the app built against the project, then `QA_BROWSER=msedge|firefox|webkit npm run qa:field-ops`). The local stand-in (`npm run dev:supabase`) now also emulates Storage (signed upload and download links with Range, list, delete), checking the real Storage policies in PGlite.
 
 ## 16. Deployment
@@ -345,4 +347,23 @@ Payments, invoices, subscriptions and payment gateways. The vendor marketplace, 
 
 ## 20. Production verification
 
-Filled in after deployment.
+30 September 2026, project `epqwcpckltrnhzmegtyq`, app commit `94cb642` (Vercel production deployment: success).
+
+- **Migration** `20260930090000` was applied in one transaction over the direct connection. First the script checked production was in the expected pre-2C state: Phase 2B hardening live, no 2C objects. Then it verified the result inside the transaction before committing: 4 tables with RLS, a private bucket (50 MB, 5 types), 4 Storage policies, 10 functions, no admin function executable by `anon`, the completion rule live, and the Phase 2B unassign rule unchanged.
+- **Schema fingerprint:** production matches the repository in every category, including `m storage policies` (`bbf7b96e91a3`) and `n evidence bucket` (`6d9cf02f565d`). The only differences are the two documented in PHASE_2B.md (`public.rls_auto_enable()` and the `varchar` rendering of the auth email trigger).
+- **Acceptance tests against production:**
+
+| Suite | Edge | Firefox | WebKit |
+| --- | --- | --- | --- |
+| Phase 2C field operations (`qa:field-ops`) | 25/25 | 25/25 | 25/25 |
+| Phase 2A customer portal (`qa:portal`) | 23/23 | 23/23 | 23/23 |
+| Phase 2B admin console (`qa:admin`) | 30/30 | 30/30 | 30/30 |
+
+- **Also against production:**
+  - the Phase 2B security probe: 274/274 (assignment, admin functions, internal privacy, activity, authorization, RLS);
+  - the Phase 2B console assignment checks: 12/12;
+  - the public QA with `QA_READONLY=true`: 506 checks, 0 failures.
+- **Data integrity**, comparing snapshots before the migration and after all the runs:
+  - every real record is unchanged (accounts, profiles, team, properties, requests, assignments, timeline, activity, notifications: same counts and row fingerprints);
+  - the Phase 2C tables and the evidence bucket are empty;
+  - no test accounts remain, and there are no orphan visits, evidence records, evidence files or assignments.

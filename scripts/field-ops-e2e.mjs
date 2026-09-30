@@ -233,7 +233,10 @@ async function newSession(label, timezoneId) {
   const address = `198.51.100.${Math.floor(Math.random() * 250) + 1}`;
   await context.route(`${BASE}/**`, (route) => route.continue({ headers: { ...route.request().headers(), "x-forwarded-for": address } }));
   const page = await context.newPage();
-  const ignored = (message) => CHANNEL === "webkit" && /_rsc=.*access control checks/.test(message);
+  // Firefox logs this when Supabase's CDN (Cloudflare) tries to set its bot-management cookie on
+  // supabase.co, a public suffix, while an evidence file loads: harmless, and not the app's to change.
+  const ignored = (message) =>
+    (CHANNEL === "webkit" && /_rsc=.*access control checks/.test(message)) || (CHANNEL === "firefox" && /Cookie .__cf_bm. has been rejected for invalid domain\./.test(message));
   // Browsers cancel prefetches and responses still in flight when the next page loads; WebKit then
   // logs "TypeError: Load failed" and Firefox "TypeError: Error in input stream". Those are set aside
   // only within 5 seconds of a real cancellation; every other console or page error fails the run.
